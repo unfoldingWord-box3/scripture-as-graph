@@ -60,29 +60,34 @@ for (var [chapter, chapterV] of Object.entries(usfmJSON.chapters)) {
     tokenized.chapterVerses[chapter] = {
         verses: {}  
     };
+    const cNode = tokenized.chapterVerses[chapter]; 
     for (var [verse, verseV] of Object.entries(chapterV)) {
         currentChapter = (verse === "front") ? null : chapter;
         currentVerse = (verse === "front") ? null : verse;
         if (currentVerse) {
-            tokenized.chapterVerses[chapter].verses[verse] = {
-                text: ""
+            cNode.verses[verse] = {
+                text: "",
+                tokens: {}
             }
+            const vNode = cNode.verses[verse];
             var verseText = "";
             for (var verseOb of verseV.verseObjects) {
                 if ("text" in verseOb) {
                     verseText += verseOb.text;
                 }
             }
-            tokenized.chapterVerses[chapter].verses[verse].text += verseText;
+            vNode.text += verseText;
             while (verseText.length > 0) {
                 const [match, rest, matchType] = getToken(verseText);
+                const tokenId = nextTokenId++;
                 tokenized.tokens.push({
-                    tokenId: nextTokenId++,
+                    tokenId: tokenId,
                     type: matchType,    
                     text: match,
                     chapter: currentChapter,
                     verse: currentVerse
-                    });
+                });
+                vNode.tokens[tokenId] = true;
                 verseText = rest;
             }
         }
@@ -90,4 +95,4 @@ for (var [chapter, chapterV] of Object.entries(usfmJSON.chapters)) {
 
 }
 
-console.log(JSON.stringify(tokenized, null, 2))
+console.log(JSON.stringify(tokenized.chapterVerses, null, 2))
