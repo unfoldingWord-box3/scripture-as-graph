@@ -10,6 +10,7 @@
   "license": "ISC",
   "dependencies": {
     "fs-extra": "^9.0.1",
-    "usfm-js": "^2.1.0"
+    "usfm-js": "^2.1.0",
+    "xregexp": "^4.3.0"
   }
 }

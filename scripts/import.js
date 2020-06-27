@@ -1,6 +1,7 @@
 'use strict';
 const usfmjs = require('usfm-js');
 const fse = require('fs-extra');
+const xre = require('xregexp');
 
 // node import.js <usfmPath>
 
@@ -24,13 +25,13 @@ var nextPara = 0;
 var currentChapter = null;
 var currentVerse = null;
 
-// Process chapters
+// Function to extract tokens from text
 
 const getToken = function(str) {
-    const alphanumericRegex = /^([A-Za-z0-9]+)/;
-    const whitespaceRegex = /^(\s+)/;
-    const punctuationRegex = /^([^A-Za-z0-9\s]+)/;
-if (str.length === 0) {
+    const alphanumericRegex = xre("^([\\p{Letter}\\p{Number}]+)");
+    const whitespaceRegex = xre("^([\\s]+)");
+    const punctuationRegex = xre("^(\\p{Punctuation}+)");
+    if (str.length === 0) {
         return ["", "", null]
     } else {
         var strMatch = alphanumericRegex.exec(str);
@@ -42,11 +43,17 @@ if (str.length === 0) {
                 return [strMatch[1], str.substring(strMatch[1].length), "whitespace"]
             } else {
                 var strMatch = punctuationRegex.exec(str);
-                return [strMatch[1], str.substring(strMatch[1].length), "punctuation"]
+                if (strMatch) {
+                    return [strMatch[1], str.substring(strMatch[1].length), "punctuation"]
+                } else {
+                    throw `Could not match against '${str}' at Ch ${currentChapter}:${currentVerse}`;
+                }
             }
         }
     }
 }
+
+// Process chapters
 
 for (var [chapter, chapterV] of Object.entries(usfmJSON.chapters)) {
     currentVerse = null;
@@ -62,23 +69,20 @@ for (var [chapter, chapterV] of Object.entries(usfmJSON.chapters)) {
             }
             var verseText = "";
             for (var verseOb of verseV.verseObjects) {
-                if (verseOb.type === "text") {
+                if ("text" in verseOb) {
                     verseText += verseOb.text;
                 }
             }
             tokenized.chapterVerses[chapter].verses[verse].text += verseText;
             while (verseText.length > 0) {
-                var [match, rest, matchType] = getToken(verseText);
-                // console.log(currentChapter, match, rest)
-                if (match.length > 0) {
-                    tokenized.tokens.push({
-                        tokenId: nextTokenId++,
-                        type: matchType,
-                        text: match,
-                        chapter: currentChapter,
-                        verse: currentVerse
+                const [match, rest, matchType] = getToken(verseText);
+                tokenized.tokens.push({
+                    tokenId: nextTokenId++,
+                    type: matchType,    
+                    text: match,
+                    chapter: currentChapter,
+                    verse: currentVerse
                     });
-                }
                 verseText = rest;
             }
         }
