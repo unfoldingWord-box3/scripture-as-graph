@@ -1,0 +1,27 @@
+#!/bin/bash
+set -e
+set -u
+echo
+echo stats
+node import.js $1 stats
+echo
+echo usfmjs
+node import.js $1 usfmjs
+echo
+echo originalText
+node import.js $1 originalText 23 1,2,3
+echo
+echo alphanumericOnlyText
+node import.js $1 alphanumericOnlyText 23 1,2,3
+echo
+echo wordRoots
+node import.js $1 wordRoots 23 1,2,3
+echo
+echo normalizedText
+node import.js $1 normalizedText 23 1,2,3
+echo
+echo wordSearch
+node import.js $1 wordSearch faithfulness
+echo
+echo frequency
+node import.js $1 frequency 200
