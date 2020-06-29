@@ -18,7 +18,7 @@ class SAG {
         this.timestamp = new Date().getTime();
         this.processChapters();
         console.log("Init in", this.elapsedTime(), "msec")
-        console.log(this.heapUsed(), "used after init");
+        console.log(this.heapUsed(), "used after init\n");
     }
 
     elapsedTime() {
@@ -190,6 +190,12 @@ class SAG {
         return Array.from(cv);
     }
 
+    wordInCV(word, cv) {
+        const [chapter, verse] = cv.split(":");
+        const verseTokens = this.tokensForVerses(chapter, [verse]);
+        return verseTokens.map(t => t.normalizedWord === word ? t.text.toUpperCase() : this.normalizeSpace(t.text)).join("");
+    }
+
 }
 
 const usage = function() {
@@ -201,6 +207,7 @@ const usage = function() {
     console.log("node", pathBase, "<usfmPath>", "wordRoots", "23", "1,2,3");
     console.log("node", pathBase, "<usfmPath>", "normalizedText", "23", "1,2,3");
     console.log("node", pathBase, "<usfmPath>", "wordSearch", "faithfulness");
+    console.log("node", pathBase, "<usfmPath>", "wordInVerse", "sworn");
     console.log("node", pathBase, "<usfmPath>", "frequency", "200");
 }
 
@@ -232,11 +239,13 @@ if (process.argv[3] === "stats") {
     console.log(sag.tokensForVerses(process.argv[4], process.argv[5].split(",")).map(t => sag.normalizeSpace(sag.tokenText(t))).join(""));
 } else if (process.argv[3] === "wordSearch") {
     console.log(process.argv[4] + " - " + sag.wordCV(sag.words[process.argv[4]].tokens).join(", "));
+} else if (process.argv[3] == "wordInVerse") {
+    sag.wordCV(sag.words[process.argv[4]].tokens).map(cv => { return cv + ": " + sag.wordInCV(process.argv[4], cv)}).forEach(l => console.log(l));
 } else if (process.argv[3] === "frequency") {
-    console.log(sag.wordsByFrequency().reverse().filter(kv => kv[1].tokens.size > process.argv[4]).map(kv => kv[0] + ": " + kv[1].tokens.size));
+    sag.wordsByFrequency().reverse().filter(kv => kv[1].tokens.size > process.argv[4]).map(kv => kv[0] + ": " + kv[1].tokens.size).forEach(l => console.log(l));
 } else {
     usage();
 }
 
-console.log("Query in", sag.elapsedTime(), "msec");
+console.log("\nQuery in", sag.elapsedTime(), "msec");
 console.log(sag.heapUsed(), "used after query");
