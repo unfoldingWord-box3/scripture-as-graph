@@ -4,11 +4,10 @@ const fse = require('fs-extra');
 const xre = require('xregexp');
 const path = require('path');
 
-// node import.js <usfmPath>
-
 class SAG {
 
     constructor(usfm) {
+        console.log(this.heapUsed(), "used before init");
         this.usfmJSON = usfmjs.toJSON(usfm);
         this.headers = this.usfmJSON.headers;
         this.chapterVerses = {};
@@ -16,7 +15,21 @@ class SAG {
         this.tokens = {};
         this.currentChapter = null;
         this.currentVerse = null;
+        this.timestamp = new Date().getTime();
         this.processChapters();
+        console.log("Init in", this.elapsedTime(), "msec")
+        console.log(this.heapUsed(), "used after init");
+    }
+
+    elapsedTime() {
+        const now = new Date().getTime();
+        const ret = now - this.timestamp;
+        this.timestamp = now;
+        return ret;
+    }
+
+    heapUsed() {
+        return (Math.round(process.memoryUsage().heapUsed / 1024 / 1024)) + " Mb";
     }
 
     getToken(str) {
@@ -224,3 +237,6 @@ if (process.argv[3] === "stats") {
 } else {
     usage();
 }
+
+console.log("Query in", sag.elapsedTime(), "msec");
+console.log(sag.heapUsed(), "used after query");
