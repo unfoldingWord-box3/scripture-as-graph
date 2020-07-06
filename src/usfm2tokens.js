@@ -18,8 +18,8 @@ class USFM2Tokens {
             ],
             [
                 "tag",
-                "(\\\\[a-z1-9\\\\-]+[\\\\* \\t]?)",
-                "\\\\([a-z1-9\\\\-]+)([\\\\* \\t]?)"
+                "(\\\\[a-z1-9\\-]+[* \\t]?)",
+                "\\\\([a-z1-9\\-]+)([* \\t]?)"
             ],
             [
                 "bareSlash",
@@ -61,13 +61,15 @@ class USFM2Tokens {
         };
         this.headers = {};
         this.bodyTokens = [];
+        this.errors = [];
         this.newTokenContext = {
             lastParaId: null,
             lastTokenId: null,
             para: null,
             chapter: null,
             verses: null,
-            chars: null
+            chars: null,
+            paraCount: 0
         };
         this.tokenContext = JSON.parse(JSON.stringify(this.newTokenContext));
         this.matchTokens();
@@ -77,7 +79,7 @@ class USFM2Tokens {
     matchToken(matched) {
         let tObject = null;
         for (const tokenRecord of this.tokenDetails) {
-            const [tName, tMatch, tSplit] = tokenRecord;
+            let [tName, tMatch, tSplit] = tokenRecord;
             if (xre.match(matched, xre(tMatch))) {
                 tObject = {
                     type: tName,
@@ -110,12 +112,21 @@ class USFM2Tokens {
         return this.tagMatchesInArray(this.usfmTags.headers, str);
     }
 
+    isParaTag(str) {
+        return this.tagMatchesInArray(this.usfmTags.headers, str) || this.tagMatchesInArray(this.usfmTags.paras, str);
+    }
+
     parseTokens() {
         for (const token of this.tokens) {
-            if (token.type === "tag") {
+            if (token.type === "bareSlash") {
+                this.errors.push("Bare backslash in para " + this.tokenContext.paraCount);
+            } else if (token.type === "tag") {
                 if (this.isHeaderTag(token.bits[0])) {
-                    this.tokenContext.para = token.bits[0];
                     this.headers[token.bits[0]] = "";
+                }
+                if (this.isParaTag(token.bits[0])) {
+                    this.tokenContext.para = token.bits[0];
+                    this.tokenContext.paraCount++;
                 }
             } else if (token.type === "text") {
                 if (this.isHeaderTag(this.tokenContext.para)) {
@@ -123,6 +134,7 @@ class USFM2Tokens {
                 }
             } else if (token.type === "eol") {
                 this.tokenContext.para = null;
+                this.tokenContext.chars = [];
             }
         }
     }

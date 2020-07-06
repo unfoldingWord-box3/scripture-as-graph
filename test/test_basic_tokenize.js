@@ -24,4 +24,10 @@ describe('Basic Tokenizing', function() {
         }
     });
 
+    it('Reports bare backslashes', function () {
+        const u2t = new USFM2Tokens(path.join(this.testDataDir, "bare_slash.usfm"));
+        assert.equal(u2t.errors.length, 2);
+    });
+
+
 });
