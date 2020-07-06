@@ -4,12 +4,15 @@
   "description": "Experiments with representing Scripture as a graph",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha test/test_basic_tokenize.js"
   },
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "chai": "^4.2.0",
+    "esm": "^3.2.25",
     "fs-extra": "^9.0.1",
+    "mocha": "^8.0.1",
     "usfm-js": "^2.1.0",
     "xregexp": "^4.3.0"
   }
