@@ -1,16 +1,17 @@
 const xre =require('xregexp');
 const fse = require('fs-extra');
+import { v4 as uuid4 } from 'uuid';
 
 class USFM2Tokens {
 
     constructor(usfmPath) {
-        this.tokens = [];
+        this.protoTokens = [];
         try {
             this.usfm = fse.readFileSync(usfmPath, "utf-8");
             } catch (err) {
                 throw new Error(`Could not load USFM: ${err}`);
             }   
-        this.tokenDetails = [
+        this.protoTokenDetails = [
             [
                 "cv",
                 "(\\\\[cv][ \\t]\\d+[ \\t]?)",
@@ -28,18 +29,8 @@ class USFM2Tokens {
             ],
             [
                 "eol",
-                "(\\r\\n)",
-                "(\\r\\n)"
-            ],
-            [
-                "eol",
-                "(\\r)",
-                "(\\r)"
-            ],
-            [
-                "eol",
-                "(\\n)",
-                "(\\n)"
+                "([\\r\\n]+)",
+                "([\\r\\n]+)"
             ],
             [
                 "text",
@@ -48,13 +39,19 @@ class USFM2Tokens {
             ]
         ];
         this.mainRegex = xre(
-            this.tokenDetails.map(x => x[1]).join("|")
+            this.protoTokenDetails.map(x => x[1]).join("|")
         );
         this.usfmTags = {
             headers: ["id", "usfm", "ide", "sts", "rem", "h", "toc[1-9]", "toca[1-9]"],
             paras: [
                 "mt[1-9]?", "mte[1-9]?", "ms[1-9]?", "mr", "s[1-9]?", "sr", "r", "d", "sp", "sd[1-9]?",
                 "p", "m", "po", "pr", "cls", "pmo", "pm", "pmc", "pmr", "pi[1-9]?", "mi", "nb", "pc", "ph[1-9]?", "b",
+                "q[1-9]?", "qr[1-9]?", "qc[1-9]?", "qa", "qm[1-9]?", "qd",
+                "lh", "li[1-9]?", "lf", "lim[1-9]?"
+            ],
+            canonicalParas: [
+                "d",
+                "p", "m", "po", "pr", "cls", "pmo", "pm", "pmc", "pmr", "pi[1-9]?", "mi", "pc", "ph[1-9]?",
                 "q[1-9]?", "qr[1-9]?", "qc[1-9]?", "qa", "qm[1-9]?", "qd",
                 "lh", "li[1-9]?", "lf", "lim[1-9]?"
             ]
@@ -72,14 +69,14 @@ class USFM2Tokens {
             paraCount: 0
         };
         this.tokenContext = JSON.parse(JSON.stringify(this.newTokenContext));
-        this.matchTokens();
-        this.parseTokens();
+        this.matchProtoTokens();
+        this.parseProtoTokens();
     }
 
-    matchToken(matched) {
+    matchProtoToken(matched) {
         let tObject = null;
-        for (const tokenRecord of this.tokenDetails) {
-            let [tName, tMatch, tSplit] = tokenRecord;
+        for (const protoTokenRecord of this.protoTokenDetails) {
+            let [tName, tMatch, tSplit] = protoTokenRecord;
             if (xre.match(matched, xre(tMatch))) {
                 tObject = {
                     type: tName,
@@ -92,12 +89,12 @@ class USFM2Tokens {
         return tObject;
     }
 
-    matchTokens() {
-        xre.forEach(this.usfm, this.mainRegex, match => this.tokens.push(this.matchToken(match[0])));
+    matchProtoTokens() {
+        xre.forEach(this.usfm, this.mainRegex, match => this.protoTokens.push(this.matchProtoToken(match[0])));
     }
 
     reconstitutedUSFM() {
-        return this.tokens.map(t => t.matched).join('')
+        return this.protoTokens.map(t => t.matched).join('')
     }
 
     tagMatchesInArray(arr, str) {
@@ -116,23 +113,89 @@ class USFM2Tokens {
         return this.tagMatchesInArray(this.usfmTags.headers, str) || this.tagMatchesInArray(this.usfmTags.paras, str);
     }
 
-    parseTokens() {
-        for (const token of this.tokens) {
-            if (token.type === "bareSlash") {
-                this.errors.push("Bare backslash in para " + this.tokenContext.paraCount);
-            } else if (token.type === "tag") {
-                if (this.isHeaderTag(token.bits[0])) {
-                    this.headers[token.bits[0]] = "";
+    isCanonicalParaTag(str) {
+        return this.tagMatchesInArray(this.usfmTags.canonicalParas, str);
+    }
+
+    getToken(str) {
+        const alphanumericRegex = xre("^([\\p{Letter}\\p{Number}]+)");
+        const whitespaceRegex = xre("^([\\s]+)");
+        const punctuationRegex = xre("^([\\p{Punctuation}+]+)");
+        if (str.length === 0) {
+            return ["", "", null]
+        } else {
+            var strMatch = alphanumericRegex.exec(str);
+            if (strMatch) {
+                return [strMatch[1], str.substring(strMatch[1].length), "alphanumeric"]
+            } else {
+                var strMatch = whitespaceRegex.exec(str);
+                if (strMatch) {
+                    return [strMatch[1], str.substring(strMatch[1].length), "whitespace"]
+                } else {
+                    var strMatch = punctuationRegex.exec(str);
+                    if (strMatch) {
+                        return [strMatch[1], str.substring(strMatch[1].length), "punctuation"]
+                    } else {
+                        throw `Could not match against '${str}' at para ${this.tokenContext.paraCount}`;
+                    }
                 }
-                if (this.isParaTag(token.bits[0])) {
-                    this.tokenContext.para = token.bits[0];
+            }
+        }
+    }
+
+    makeTextTokens(pt) {
+        let ptText = pt.matched;
+        let ret = [];
+        while (ptText.length > 0) {
+            const [match, rest, matchType] = this.getToken(ptText);
+            const lastTokenId = this.tokenContext.lastTokenId;
+            const thisTokenId = uuid4();
+            const tokenObject = {
+                tokenId: thisTokenId,
+                previous: lastTokenId,
+                type: matchType,    
+                text: match
+            };
+            if (this.isCanonicalParaTag(this.tokenContext.para)) {
+                if (this.tokenContext.chapter) {
+                    tokenObject.chapter = this.tokenContext.chapter;
+                }
+                if (this.tokenContext.verses) {
+                    tokenObject.verses = this.tokenContext.verses;
+                }
+            }   
+            ret.push(tokenObject);
+            this.tokenContext.lastTokenId = thisTokenId;
+            ptText = rest;
+        }
+        return ret;
+    }
+
+    parseProtoTokens() {
+        for (const protoToken of this.protoTokens) {
+            if (protoToken.type === "bareSlash") {
+                this.errors.push("Bare backslash in para " + this.tokenContext.paraCount);
+            } else if (protoToken.type === "tag") {
+                if (this.isHeaderTag(protoToken.bits[0])) {
+                    this.headers[protoToken.bits[0]] = "";
+                }
+                if (this.isParaTag(protoToken.bits[0])) {
+                    this.tokenContext.para = protoToken.bits[0];
                     this.tokenContext.paraCount++;
                 }
-            } else if (token.type === "text") {
-                if (this.isHeaderTag(this.tokenContext.para)) {
-                    this.headers[this.tokenContext.para] += token.matched;
+            } else if (protoToken.type == "cv") {
+                if (protoToken.bits[0] === "c") {
+                    this.tokenContext.chapter = protoToken.bits[1];
+                } else {
+                    this.tokenContext.verses = protoToken.bits[1];
                 }
-            } else if (token.type === "eol") {
+            } else if (protoToken.type === "text") {
+                if (this.isHeaderTag(this.tokenContext.para)) {
+                    this.headers[this.tokenContext.para] += protoToken.matched;
+                } else {
+                    this.bodyTokens = this.bodyTokens.concat(this.makeTextTokens(protoToken));
+                }
+            } else if (protoToken.type === "eol") {
                 this.tokenContext.para = null;
                 this.tokenContext.chars = [];
             }
