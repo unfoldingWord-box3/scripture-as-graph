@@ -14,8 +14,8 @@ class USFM2Tokens {
         this.protoTokenDetails = [
             [
                 "cv",
-                "(\\\\[cv][ \\t]\\d+[ \\t]?)",
-                "\\\\([cv])[ \\t](\\d+)[ \\t]?"
+                "([\\r\\n]*\\\\[cv][ \\t]\\d+[ \\t\\r\\n]*)",
+                "[\\r\\n]*\\\\([cv])[ \\t](\\d+)[ \\t\\r\\n]*"
             ],
             [
                 "tag",
@@ -94,7 +94,11 @@ class USFM2Tokens {
     }
 
     reconstitutedUSFM() {
-        return this.protoTokens.map(t => t.matched).join('')
+        return this.protoTokens.map(t => t.matched).join('');
+    }
+
+    textFromTokens() {
+        return this.bodyTokens.map(t => t.text).join('');
     }
 
     tagMatchesInArray(arr, str) {
@@ -171,6 +175,19 @@ class USFM2Tokens {
         return ret;
     }
 
+    makeEolToken(pt) {
+        const lastTokenId = this.tokenContext.lastTokenId;
+        const thisTokenId = uuid4();
+        const tokenObject = {
+            tokenId: thisTokenId,
+            previous: lastTokenId,
+            type: "eol",    
+            text: pt.matched
+        };
+        this.tokenContext.lastTokenId = thisTokenId;
+        return tokenObject;
+    }
+
     parseProtoTokens() {
         for (const protoToken of this.protoTokens) {
             if (protoToken.type === "bareSlash") {
@@ -198,6 +215,7 @@ class USFM2Tokens {
             } else if (protoToken.type === "eol") {
                 this.tokenContext.para = null;
                 this.tokenContext.chars = [];
+                this.bodyTokens.push(this.makeEolToken(protoToken));
             }
         }
     }
