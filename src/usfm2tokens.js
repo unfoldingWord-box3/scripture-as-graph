@@ -266,6 +266,9 @@ class USFM2Tokens {
                     this.headers[protoToken.bits[0]] = "";
                 }
                 if (this.isParaTag(tagName)) {
+                    const lastParaId = this.tokenContext.lastParaId;
+                    const thisParaId = uuid4();
+                    this.tokenContext.lastParaId = thisParaId;
                     this.tokenContext.para = tagName;
                     this.tokenContext.paraCount++;
                 }
