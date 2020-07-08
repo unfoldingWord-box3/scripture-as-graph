@@ -51,7 +51,6 @@ describe('Basic Tokenizing', function() {
 
     it('Builds an index to chapter/verse', function() {
         const u2t = new USFM2Tokens(path.join(this.testDataDir, "en_ult_lam.usfm"));
-        console.log(u2t.textForCV("1", "12"))
         assert.match(u2t.textForCV("1", "12"), /nothing to you, all you who pass by/);
     });
 
