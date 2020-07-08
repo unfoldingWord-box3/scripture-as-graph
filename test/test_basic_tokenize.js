@@ -44,4 +44,9 @@ describe('Basic Tokenizing', function() {
         assert.match(u2t.textFromBodyTokens(), /We get our bread only by risking our lives/);
     });
 
+    it('Builds an index to paras', function() {
+        const u2t = new USFM2Tokens(path.join(this.testDataDir, "en_ult_lam.usfm"));
+        assert.equal(u2t.textFromParas().split("\n")[0].charAt(0), "[");
+    });
+
 });

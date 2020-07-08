@@ -213,6 +213,16 @@ class USFM2Tokens {
         }
     }
 
+    maybeAddParaToToken() {
+        if (this.tokenContext.lastParaId) {
+            const paraRecord = this.paras[this.tokenContext.lastParaId];
+            paraRecord.lastToken = this.currentLastTokenId();
+            if (!paraRecord.firstToken) {
+                paraRecord.firstToken = this.currentLastTokenId();
+            }
+        }
+    }
+
     makeTextTokens(pt) {
         let ptText = pt.matched;
         let ret = {};
@@ -233,7 +243,8 @@ class USFM2Tokens {
                 if (this.tokenContext.verses) {
                     tokenObject.verses = this.tokenContext.verses;
                 }
-            }   
+            }
+            this.maybeAddParaToToken();
             ret[thisTokenId] = tokenObject;
             this.setCurrentLastTokenId(thisTokenId);
             ptText = rest;
@@ -251,6 +262,7 @@ class USFM2Tokens {
             text: pt.matched
         };
         this.setCurrentLastTokenId(thisTokenId);
+        this.maybeAddParaToToken();
         const ret = {};
         ret[thisTokenId] = tokenObject;
         return ret;
@@ -268,6 +280,14 @@ class USFM2Tokens {
                 if (this.isParaTag(tagName)) {
                     const lastParaId = this.tokenContext.lastParaId;
                     const thisParaId = uuid4();
+                    this.paras[thisParaId] = {
+                        paraId: thisParaId,
+                        previous: lastParaId,
+                        count: this.tokenContext.paraCount,
+                        tag: tagName,
+                        firstToken: null,
+                        lastToken: null
+                    };
                     this.tokenContext.lastParaId = thisParaId;
                     this.tokenContext.para = tagName;
                     this.tokenContext.paraCount++;
@@ -299,7 +319,7 @@ class USFM2Tokens {
         }
     }
 
-    /* ACCESSORS */
+    /* ACCESSORS (currently mainly for testing) */
 
     reconstitutedUSFM() {
         return this.protoTokens.map(t => t.matched).join('');
@@ -312,6 +332,36 @@ class USFM2Tokens {
             let token = this.tokens.body[tokenId];
             texts.push(this.normalizedText(token));
             tokenId = token.previous;
+        }
+        return texts.reverse().join('');
+    }
+
+    textFromPara(firstT, lastT) {
+        let texts = [];
+        let tokenId = lastT;
+        while (tokenId && tokenId !== firstT) {
+            let token = this.tokens.body[tokenId];
+            texts.push(this.normalizedText(token));
+            tokenId = token.previous;
+        }
+        return texts.reverse().join('');
+    }
+
+    textFromParas() {
+        let texts = [];
+        let paraId = this.tokenContext.lastParaId;
+        while (paraId) {
+            let para = this.paras[paraId];
+            if (!this.isHeaderTag(para.tag)) {
+                const paraText = this.textFromPara(para.firstToken, para.lastToken);
+                if (paraText !== '') {
+                    texts.push(paraText);
+                } else {
+                    texts.push("\n")
+                }
+                texts.push(`[${para.tag}] `);
+            }
+            paraId = para.previous;
         }
         return texts.reverse().join('');
     }
