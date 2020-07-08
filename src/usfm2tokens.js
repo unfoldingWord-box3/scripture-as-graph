@@ -5,12 +5,49 @@ import { v4 as uuid4 } from 'uuid';
 class USFM2Tokens {
 
     constructor(usfmPath) {
-        this.protoTokens = [];
-        try {
+
+        try { // Load USFM
             this.usfm = fse.readFileSync(usfmPath, "utf-8");
             } catch (err) {
                 throw new Error(`Could not load USFM: ${err}`);
-            }   
+            }
+        this.setup();
+        this.matchProtoTokens();
+        this.parseProtoTokens();
+    }
+
+    setup () {
+        this.setupLookups();
+        this.setupProtoTokenRegexes();
+        this.setupUsfmLookups();
+    }
+
+    setupLookups() {
+        this.protoTokens = [];
+        this.headers = {};
+        this.bodyTokens = [];
+        this.paras = {};
+        this.parasByTag = {};
+        this.chars = {};
+        this.charsByTag = {};
+        this.chapterVerses = {};
+        this.headings = {};
+        this.notes = {};
+        this.words = {};
+        this.errors = [];
+        this.newTokenContext = {
+            lastParaId: null,
+            lastTokenId: null,
+            para: null,
+            chapter: null,
+            verses: null,
+            chars: null,
+            paraCount: 0
+        };
+        this.tokenContext = JSON.parse(JSON.stringify(this.newTokenContext));
+    }
+
+    setupProtoTokenRegexes() {
         this.protoTokenDetails = [
             [
                 "cv",
@@ -41,6 +78,9 @@ class USFM2Tokens {
         this.mainRegex = xre(
             this.protoTokenDetails.map(x => x[1]).join("|")
         );
+    }
+
+    setupUsfmLookups() {
         this.usfmTags = {
             headers: ["id", "usfm", "ide", "sts", "rem", "h", "toc[1-9]", "toca[1-9]"],
             paras: [
@@ -56,21 +96,6 @@ class USFM2Tokens {
                 "lh", "li[1-9]?", "lf", "lim[1-9]?"
             ]
         };
-        this.headers = {};
-        this.bodyTokens = [];
-        this.errors = [];
-        this.newTokenContext = {
-            lastParaId: null,
-            lastTokenId: null,
-            para: null,
-            chapter: null,
-            verses: null,
-            chars: null,
-            paraCount: 0
-        };
-        this.tokenContext = JSON.parse(JSON.stringify(this.newTokenContext));
-        this.matchProtoTokens();
-        this.parseProtoTokens();
     }
 
     matchProtoToken(matched) {
