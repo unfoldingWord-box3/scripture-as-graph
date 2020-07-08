@@ -4,6 +4,8 @@ import { v4 as uuid4 } from 'uuid';
 
 class USFM2Tokens {
 
+    /* INIT */
+
     constructor(usfmPath) {
 
         try { // Load USFM
@@ -98,6 +100,8 @@ class USFM2Tokens {
         };
     }
 
+    /* PROTOTOKENS */
+
     matchProtoToken(matched) {
         let tObject = null;
         for (const protoTokenRecord of this.protoTokenDetails) {
@@ -118,13 +122,7 @@ class USFM2Tokens {
         xre.forEach(this.usfm, this.mainRegex, match => this.protoTokens.push(this.matchProtoToken(match[0])));
     }
 
-    reconstitutedUSFM() {
-        return this.protoTokens.map(t => t.matched).join('');
-    }
-
-    textFromTokens() {
-        return this.bodyTokens.map(t => t.text).join('');
-    }
+    /* TAG TESTS */
 
     tagMatchesInArray(arr, str) {
         if (!str) {
@@ -146,7 +144,7 @@ class USFM2Tokens {
         return this.tagMatchesInArray(this.usfmTags.canonicalParas, str);
     }
 
-    getToken(str) {
+    getTextFragment(str) {
         const alphanumericRegex = xre("^([\\p{Letter}\\p{Number}]+)");
         const whitespaceRegex = xre("^([\\s]+)");
         const punctuationRegex = xre("^([\\p{Punctuation}+]+)");
@@ -172,11 +170,13 @@ class USFM2Tokens {
         }
     }
 
+    /* PARSE PROTOTOKENS */
+
     makeTextTokens(pt) {
         let ptText = pt.matched;
         let ret = [];
         while (ptText.length > 0) {
-            const [match, rest, matchType] = this.getToken(ptText);
+            const [match, rest, matchType] = this.getTextFragment(ptText);
             const lastTokenId = this.tokenContext.lastTokenId;
             const thisTokenId = uuid4();
             const tokenObject = {
@@ -244,6 +244,17 @@ class USFM2Tokens {
             }
         }
     }
+
+    /* ACCESSORS */
+
+    reconstitutedUSFM() {
+        return this.protoTokens.map(t => t.matched).join('');
+    }
+
+    textFromTokens() {
+        return this.bodyTokens.map(t => t.text).join('');
+    }
+
 }
 
 export default USFM2Tokens;
