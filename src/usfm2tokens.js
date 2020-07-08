@@ -203,18 +203,40 @@ class USFM2Tokens {
         }
     }
 
-    normalizedText(token) {
+    normalizedText(token, singleLine) {
         if (token.type == "whitespace") {
             return " ";
         } else if (token.type == "eol") {
-            return "\n";
+            return singleLine ? " ": "\n";
         } else {
             return token.text;
         }
     }
 
-    maybeAddParaToToken() {
+    addTokenToCVLookup(token) {
+        const cvTokensRecord = this.chapterVerses[this.tokenContext.chapter][this.tokenContext.verses];
+        cvTokensRecord.lastToken = token.tokenId;
+        if (!cvTokensRecord.firstToken) {
+            cvTokensRecord.firstToken = token.tokenId;
+        }
+    }
+
+    maybeAddCVToToken(token) {
+        if (this.isCanonicalParaTag(this.tokenContext.para)) {
+            if (this.tokenContext.chapter) {
+                token.chapter = this.tokenContext.chapter;
+                this.addTokenToCVLookup(token);
+            }
+            if (this.tokenContext.verses) {
+                token.verses = this.tokenContext.verses;
+                this.addTokenToCVLookup(token);
+            }
+        }
+    }
+
+    maybeAddParaToToken(token) {
         if (this.tokenContext.lastParaId) {
+            token.para = this.tokenContextLastParaId;
             const paraRecord = this.paras[this.tokenContext.lastParaId];
             paraRecord.lastToken = this.currentLastTokenId();
             if (!paraRecord.firstToken) {
@@ -236,15 +258,8 @@ class USFM2Tokens {
                 type: matchType,    
                 text: match
             };
-            if (this.isCanonicalParaTag(this.tokenContext.para)) {
-                if (this.tokenContext.chapter) {
-                    tokenObject.chapter = this.tokenContext.chapter;
-                }
-                if (this.tokenContext.verses) {
-                    tokenObject.verses = this.tokenContext.verses;
-                }
-            }
-            this.maybeAddParaToToken();
+            this.maybeAddParaToToken(tokenObject);
+            this.maybeAddCVToToken(tokenObject);
             ret[thisTokenId] = tokenObject;
             this.setCurrentLastTokenId(thisTokenId);
             ptText = rest;
@@ -262,7 +277,7 @@ class USFM2Tokens {
             text: pt.matched
         };
         this.setCurrentLastTokenId(thisTokenId);
-        this.maybeAddParaToToken();
+        this.maybeAddParaToToken(tokenObject);
         const ret = {};
         ret[thisTokenId] = tokenObject;
         return ret;
@@ -296,8 +311,19 @@ class USFM2Tokens {
                 const [cvType, cvVal] = protoToken.bits;
                 if (cvType === "c") {
                     this.tokenContext.chapter = cvVal;
+                    this.tokenContext.verses = "0";
+                    this.chapterVerses[cvVal] = {
+                        "0": {
+                            firstToken: null,
+                            lastToken: null
+                        }
+                    }
                 } else {
                     this.tokenContext.verses = cvVal;
+                    this.chapterVerses[this.tokenContext.chapter][cvVal] = {
+                        firstToken: null,
+                        lastToken: null
+                    }
                 }
             } else if (protoToken.type === "text") {
                 if (this.isHeaderTag(this.tokenContext.para)) {
@@ -330,18 +356,25 @@ class USFM2Tokens {
         let tokenId = this.tokenContext.lastTokenId.body;
         while (tokenId) {
             let token = this.tokens.body[tokenId];
-            texts.push(this.normalizedText(token));
+            texts.push(this.normalizedText(token, false));
             tokenId = token.previous;
         }
         return texts.reverse().join('');
     }
 
     textFromPara(firstT, lastT) {
+        return this.textForTokenRange(firstT, lastT, false);
+    }
+
+    textForTokenRange(firstT, lastT, singleLine) {
         let texts = [];
         let tokenId = lastT;
-        while (tokenId && tokenId !== firstT) {
+        while (tokenId) {
             let token = this.tokens.body[tokenId];
-            texts.push(this.normalizedText(token));
+            texts.push(this.normalizedText(token, singleLine));
+            if (tokenId == firstT) {
+                break;
+            }
             tokenId = token.previous;
         }
         return texts.reverse().join('');
@@ -364,6 +397,15 @@ class USFM2Tokens {
             paraId = para.previous;
         }
         return texts.reverse().join('');
+    }
+
+    textForCV(c, v) {
+        const cvTokensRecord = this.chapterVerses[c][v];
+        return this.textForTokenRange(
+            cvTokensRecord.firstToken,
+            cvTokensRecord.lastToken,
+            true
+        );
     }
 
 }
