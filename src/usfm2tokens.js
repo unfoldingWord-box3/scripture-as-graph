@@ -28,9 +28,9 @@ class USFM2Tokens {
         this.protoTokens = [];
         this.headers = {};
         this.tokens = {
-            body: [],
-            heading: [],
-            note: []
+            body: {},
+            heading: {},
+            note: {}
         };
         this.paras = {};
         this.parasByTag = {};
@@ -197,9 +197,15 @@ class USFM2Tokens {
         this.setLastTokenIdFor(this.tokenContext.tokenDestination, val);
     }
 
+    addTokens(dest, tokens) {
+        for (const [k, v] of Object.entries(tokens)) {
+            this.tokens[dest][k] = v;
+        }
+    }
+
     makeTextTokens(pt) {
         let ptText = pt.matched;
-        let ret = [];
+        let ret = {};
         while (ptText.length > 0) {
             const [match, rest, matchType] = this.getTextFragment(ptText);
             const lastTokenId = this.currentLastTokenId();
@@ -218,7 +224,7 @@ class USFM2Tokens {
                     tokenObject.verses = this.tokenContext.verses;
                 }
             }   
-            ret.push(tokenObject);
+            ret[thisTokenId] = tokenObject;
             this.setCurrentLastTokenId(thisTokenId);
             ptText = rest;
         }
@@ -235,7 +241,9 @@ class USFM2Tokens {
             text: pt.matched
         };
         this.setCurrentLastTokenId(thisTokenId);
-        return tokenObject;
+        const ret = {};
+        ret[thisTokenId] = tokenObject;
+        return ret;
     }
 
     parseProtoTokens() {
@@ -260,12 +268,18 @@ class USFM2Tokens {
                 if (this.isHeaderTag(this.tokenContext.para)) {
                     this.headers[this.tokenContext.para] += protoToken.matched;
                 } else {
-                    this.tokens[this.tokenContext.tokenDestination] = this.tokens[this.tokenContext.tokenDestination].concat(this.makeTextTokens(protoToken));
+                    this.addTokens(
+                        this.tokenContext.tokenDestination,
+                        this.makeTextTokens(protoToken)
+                    )
                 }
             } else if (protoToken.type === "eol") {
                 this.tokenContext.para = null;
                 this.tokenContext.chars = [];
-                this.tokens[this.tokenContext.tokenDestination].push(this.makeEolToken(protoToken));
+                this.addTokens(
+                    this.tokenContext.tokenDestination,
+                    this.makeEolToken(protoToken)
+                )
             }
         }
     }
@@ -276,8 +290,16 @@ class USFM2Tokens {
         return this.protoTokens.map(t => t.matched).join('');
     }
 
-    textFromTokens() {
-        return this.tokens[this.tokenContext.tokenDestination].map(t => t.text).join('');
+    textFromBodyTokens() {
+        let texts = [];
+        let tokenId = this.tokenContext.lastTokenId.body;
+        while (tokenId) {
+            let token = this.tokens.body[tokenId];
+            texts.push(token.type === "eol" ? "\n" : token.text);
+            tokenId = token.previous;
+        }
+
+        return texts.reverse().join('');
     }
 
 }
