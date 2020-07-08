@@ -27,7 +27,11 @@ class USFM2Tokens {
     setupLookups() {
         this.protoTokens = [];
         this.headers = {};
-        this.bodyTokens = [];
+        this.tokens = {
+            body: [],
+            heading: [],
+            note: []
+        };
         this.paras = {};
         this.parasByTag = {};
         this.chars = {};
@@ -38,12 +42,17 @@ class USFM2Tokens {
         this.words = {};
         this.errors = [];
         this.newTokenContext = {
+            tokenDestination: "body",
             lastParaId: null,
-            lastTokenId: null,
-            para: null,
+            lastTokenId: {
+                body: null,
+                heading: null,
+                note: null,
+            },
             chapter: null,
             verses: null,
             chars: null,
+            para: null,
             paraCount: 0
         };
         this.tokenContext = JSON.parse(JSON.stringify(this.newTokenContext));
@@ -172,12 +181,28 @@ class USFM2Tokens {
 
     /* PARSE PROTOTOKENS */
 
+    lastTokenIdFor(dest) {
+        return this.tokenContext.lastTokenId[dest];
+    }
+
+    setLastTokenIdFor(dest, val) {
+        this.tokenContext.lastTokenId[dest] = val;
+    }
+
+    currentLastTokenId() {
+        return this.lastTokenIdFor(this.tokenContext.tokenDestination);
+    }
+
+    setCurrentLastTokenId(val) {
+        this.setLastTokenIdFor(this.tokenContext.tokenDestination, val);
+    }
+
     makeTextTokens(pt) {
         let ptText = pt.matched;
         let ret = [];
         while (ptText.length > 0) {
             const [match, rest, matchType] = this.getTextFragment(ptText);
-            const lastTokenId = this.tokenContext.lastTokenId;
+            const lastTokenId = this.currentLastTokenId();
             const thisTokenId = uuid4();
             const tokenObject = {
                 tokenId: thisTokenId,
@@ -194,14 +219,14 @@ class USFM2Tokens {
                 }
             }   
             ret.push(tokenObject);
-            this.tokenContext.lastTokenId = thisTokenId;
+            this.setCurrentLastTokenId(thisTokenId);
             ptText = rest;
         }
         return ret;
     }
 
     makeEolToken(pt) {
-        const lastTokenId = this.tokenContext.lastTokenId;
+        const lastTokenId = this.currentLastTokenId();
         const thisTokenId = uuid4();
         const tokenObject = {
             tokenId: thisTokenId,
@@ -209,7 +234,7 @@ class USFM2Tokens {
             type: "eol",    
             text: pt.matched
         };
-        this.tokenContext.lastTokenId = thisTokenId;
+        this.setCurrentLastTokenId(thisTokenId);
         return tokenObject;
     }
 
@@ -235,12 +260,12 @@ class USFM2Tokens {
                 if (this.isHeaderTag(this.tokenContext.para)) {
                     this.headers[this.tokenContext.para] += protoToken.matched;
                 } else {
-                    this.bodyTokens = this.bodyTokens.concat(this.makeTextTokens(protoToken));
+                    this.tokens[this.tokenContext.tokenDestination] = this.tokens[this.tokenContext.tokenDestination].concat(this.makeTextTokens(protoToken));
                 }
             } else if (protoToken.type === "eol") {
                 this.tokenContext.para = null;
                 this.tokenContext.chars = [];
-                this.bodyTokens.push(this.makeEolToken(protoToken));
+                this.tokens[this.tokenContext.tokenDestination].push(this.makeEolToken(protoToken));
             }
         }
     }
@@ -252,7 +277,7 @@ class USFM2Tokens {
     }
 
     textFromTokens() {
-        return this.bodyTokens.map(t => t.text).join('');
+        return this.tokens[this.tokenContext.tokenDestination].map(t => t.text).join('');
     }
 
 }

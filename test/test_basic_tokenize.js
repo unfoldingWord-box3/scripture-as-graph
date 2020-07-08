@@ -32,9 +32,9 @@ describe('Basic Tokenizing', function() {
 
     it('Makes Text and EOL tokens', function () {
         const u2t = new USFM2Tokens(path.join(this.testDataDir, "bare_slash.usfm"));
-        assert(u2t.bodyTokens.length > 0);
+        assert(u2t.tokens.body.length > 0);
         for (const tokenType of ["alphanumeric", "punctuation", "whitespace", "eol"]) {
-            assert(u2t.bodyTokens.filter(t => t.type == tokenType).length > 0);
+            assert(u2t.tokens.body.filter(t => t.type == tokenType).length > 0);
         }
     });
 
