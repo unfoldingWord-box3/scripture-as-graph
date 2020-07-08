@@ -203,6 +203,16 @@ class USFM2Tokens {
         }
     }
 
+    normalizedText(token) {
+        if (token.type == "whitespace") {
+            return " ";
+        } else if (token.type == "eol") {
+            return "\n";
+        } else {
+            return token.text;
+        }
+    }
+
     makeTextTokens(pt) {
         let ptText = pt.matched;
         let ret = {};
@@ -249,20 +259,22 @@ class USFM2Tokens {
     parseProtoTokens() {
         for (const protoToken of this.protoTokens) {
             if (protoToken.type === "bareSlash") {
-                this.errors.push("Bare backslash in para " + this.tokenContext.paraCount);
+                this.errors.push(`Bare backslash in para ${this.tokenContext.paraCount}`);
             } else if (protoToken.type === "tag") {
-                if (this.isHeaderTag(protoToken.bits[0])) {
+                const tagName = protoToken.bits[0];
+                if (this.isHeaderTag(tagName)) {
                     this.headers[protoToken.bits[0]] = "";
                 }
-                if (this.isParaTag(protoToken.bits[0])) {
-                    this.tokenContext.para = protoToken.bits[0];
+                if (this.isParaTag(tagName)) {
+                    this.tokenContext.para = tagName;
                     this.tokenContext.paraCount++;
                 }
             } else if (protoToken.type == "cv") {
-                if (protoToken.bits[0] === "c") {
-                    this.tokenContext.chapter = protoToken.bits[1];
+                const [cvType, cvVal] = protoToken.bits;
+                if (cvType === "c") {
+                    this.tokenContext.chapter = cvVal;
                 } else {
-                    this.tokenContext.verses = protoToken.bits[1];
+                    this.tokenContext.verses = cvVal;
                 }
             } else if (protoToken.type === "text") {
                 if (this.isHeaderTag(this.tokenContext.para)) {
@@ -295,10 +307,9 @@ class USFM2Tokens {
         let tokenId = this.tokenContext.lastTokenId.body;
         while (tokenId) {
             let token = this.tokens.body[tokenId];
-            texts.push(token.type === "eol" ? "\n" : token.text);
+            texts.push(this.normalizedText(token));
             tokenId = token.previous;
         }
-
         return texts.reverse().join('');
     }
 

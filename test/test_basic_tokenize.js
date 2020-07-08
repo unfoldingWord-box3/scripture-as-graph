@@ -42,6 +42,6 @@ describe('Basic Tokenizing', function() {
     it('Returns text from tokens', function() {
         const u2t = new USFM2Tokens(path.join(this.testDataDir, "en_ult_lam.usfm"));
         assert.match(u2t.textFromBodyTokens(), /We get our bread only by risking our lives/);
-    })
+    });
 
 });
