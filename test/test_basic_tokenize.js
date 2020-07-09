@@ -33,9 +33,9 @@ describe('Basic Tokenizing', function() {
 
     it('Makes Text and EOL tokens', function () {
         const u2t = new USFM2Tokens(path.join(this.testDataDir, "en_ult_lam.usfm"));
-        assert(Object.keys(u2t.tokens.body).length > 0);
+        assert(Object.keys(u2t.tokens).length > 0);
         for (const tokenType of ["alphanumeric", "punctuation", "whitespace", "eol"]) {
-            assert(Object.values(u2t.tokens.body).filter(t => t.type == tokenType).length > 0);
+            assert(Object.values(u2t.tokens).filter(t => t.type == tokenType).length > 0);
         }
     });
 

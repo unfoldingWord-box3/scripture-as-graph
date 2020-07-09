@@ -27,11 +27,7 @@ class USFM2Tokens {
     setupLookups() {
         this.protoTokens = [];
         this.headers = {};
-        this.tokens = {
-            body: {},
-            heading: {},
-            note: {}
-        };
+        this.tokens = {};
         this.paras = {};
         this.parasByTag = {};
         this.chars = {};
@@ -197,9 +193,9 @@ class USFM2Tokens {
         this.setLastTokenIdFor(this.tokenContext.tokenDestination, val);
     }
 
-    addTokens(dest, tokens) {
+    addTokens(tokens) {
         for (const [k, v] of Object.entries(tokens)) {
-            this.tokens[dest][k] = v;
+            this.tokens[k] = v;
         }
     }
 
@@ -341,7 +337,6 @@ class USFM2Tokens {
                     this.headers[this.tokenContext.para] += protoToken.matched;
                 } else {
                     this.addTokens(
-                        this.tokenContext.tokenDestination,
                         this.makeTextTokens(protoToken)
                     )
                 }
@@ -349,7 +344,6 @@ class USFM2Tokens {
                 this.tokenContext.para = null;
                 this.tokenContext.chars = [];
                 this.addTokens(
-                    this.tokenContext.tokenDestination,
                     this.makeEolToken(protoToken)
                 )
             }
@@ -366,7 +360,7 @@ class USFM2Tokens {
         let texts = [];
         let tokenId = this.tokenContext.lastTokenId.body;
         while (tokenId) {
-            let token = this.tokens.body[tokenId];
+            let token = this.tokens[tokenId];
             texts.push(this.normalizedText(token, false));
             tokenId = token.previous;
         }
@@ -381,7 +375,7 @@ class USFM2Tokens {
         let texts = [];
         let tokenId = lastT;
         while (tokenId) {
-            let token = this.tokens.body[tokenId];
+            let token = this.tokens[tokenId];
             texts.push(this.normalizedText(token, singleLine));
             if (tokenId == firstT) {
                 break;
@@ -425,7 +419,7 @@ class USFM2Tokens {
         if (wordSet) {
             wordSet.forEach(
                 ti => {
-                    const token = this.tokens.body[ti];
+                    const token = this.tokens[ti];
                     if (token.chapter && token.verses) {
                         cvs.add([token.chapter, token.verses].join(":"));
                     }
