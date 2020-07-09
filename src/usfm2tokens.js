@@ -371,18 +371,23 @@ class USFM2Tokens {
         return this.textForTokenRange(firstT, lastT, false);
     }
 
-    textForTokenRange(firstT, lastT, singleLine) {
-        let texts = [];
+    tokenRange(firstT, lastT) {
+        let ret = [];
         let tokenId = lastT;
         while (tokenId) {
             let token = this.tokens[tokenId];
-            texts.push(this.normalizedText(token, singleLine));
+            ret.push(token);
             if (tokenId == firstT) {
                 break;
             }
             tokenId = token.previous;
-        }
-        return texts.reverse().join('');
+        };
+        return ret.reverse();
+    }
+
+    textForTokenRange(firstT, lastT, singleLine) {
+        let textArray = this.tokenRange(firstT, lastT).map(t => this.normalizedText(t, singleLine));
+        return textArray.join('');
     }
 
     textFromParas() {
@@ -427,6 +432,23 @@ class USFM2Tokens {
             );
         }
         return Array.from(cvs);
+    }
+
+    wordInVerses(w) {
+        return this.cvForWord(w).map(
+            cv => {
+                const [c, v] = cv.split(":");
+                const cvTokensRecord = this.chapterVerses[c][v];
+                const tRange = this.tokenRange(
+                    cvTokensRecord.firstToken,
+                    cvTokensRecord.lastToken
+                );
+                const highlightedText = tRange.map(
+                    t => t.word === w ? `<${t.text}>` : this.normalizedText(t, true)
+                    ).join("");
+                return `[${cv}] ${highlightedText}`;
+            }
+        );
     }
 
 }

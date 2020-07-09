@@ -61,5 +61,9 @@ describe('Basic Tokenizing', function() {
         assert(u2t.cvForWord("banana").length == 0);
     });
 
+    it('Finds word in verses', function() {
+        const u2t = new USFM2Tokens(path.join(this.testDataDir, "en_ult_lam.usfm"));
+        assert.equal(u2t.wordInVerses("elders").length, u2t.cvForWord("elders").length);
+    }); 
 
 });
