@@ -54,4 +54,12 @@ describe('Basic Tokenizing', function() {
         assert.match(u2t.textForCV("1", "12"), /nothing to you, all you who pass by/);
     });
 
+    it('Builds a word index', function() {
+        const u2t = new USFM2Tokens(path.join(this.testDataDir, "en_ult_lam.usfm"));
+        assert(u2t.cvForWord("yahweh").length > 0);
+        assert(u2t.cvForWord("elders").length > 0);
+        assert(u2t.cvForWord("banana").length == 0);
+    });
+
+
 });

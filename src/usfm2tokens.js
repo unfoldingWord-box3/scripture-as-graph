@@ -160,15 +160,15 @@ class USFM2Tokens {
         if (str.length === 0) {
             return ["", "", null]
         } else {
-            var strMatch = alphanumericRegex.exec(str);
+            let strMatch = alphanumericRegex.exec(str);
             if (strMatch) {
                 return [strMatch[1], str.substring(strMatch[1].length), "alphanumeric"]
             } else {
-                var strMatch = whitespaceRegex.exec(str);
+                strMatch = whitespaceRegex.exec(str);
                 if (strMatch) {
                     return [strMatch[1], str.substring(strMatch[1].length), "whitespace"]
                 } else {
-                    var strMatch = punctuationRegex.exec(str);
+                    strMatch = punctuationRegex.exec(str);
                     if (strMatch) {
                         return [strMatch[1], str.substring(strMatch[1].length), "punctuation"]
                     } else {
@@ -245,6 +245,16 @@ class USFM2Tokens {
         }
     }
 
+    addWordLookup(token) {
+        if (token.type === "alphanumeric") {
+            token.word = token.text.toLowerCase();
+            if (!(token.word in this.words)) {
+                this.words[token.word] = new Set();
+            }
+            this.words[token.word].add(token.tokenId);
+        }
+    }
+
     makeTextTokens(pt) {
         let ptText = pt.matched;
         let ret = {};
@@ -260,6 +270,7 @@ class USFM2Tokens {
             };
             this.maybeAddParaToToken(tokenObject);
             this.maybeAddCVToToken(tokenObject);
+            this.addWordLookup(tokenObject);
             ret[thisTokenId] = tokenObject;
             this.setCurrentLastTokenId(thisTokenId);
             ptText = rest;
@@ -406,6 +417,22 @@ class USFM2Tokens {
             cvTokensRecord.lastToken,
             true
         );
+    }
+
+    cvForWord(w) {
+        const cvs = new Set();
+        const wordSet = this.words[w];
+        if (wordSet) {
+            wordSet.forEach(
+                ti => {
+                    const token = this.tokens.body[ti];
+                    if (token.chapter && token.verses) {
+                        cvs.add([token.chapter, token.verses].join(":"));
+                    }
+                }
+            );
+        }
+        return Array.from(cvs);
     }
 
 }
