@@ -305,14 +305,14 @@ class USFM2Tokens {
                     this.paras[thisParaId] = {
                         paraId: thisParaId,
                         previous: lastParaId,
-                        count: this.tokenContext.paraCount,
+                        count: this.tokenContext.paraCount++,
                         tag: tagName,
                         firstToken: null,
                         lastToken: null
                     };
                     this.tokenContext.lastParaId = thisParaId;
                     this.tokenContext.para = tagName;
-                    this.tokenContext.paraCount++;
+                    this.tokenContext.chars = [];
                 }
             } else if (protoToken.type == "cv") {
                 const [cvType, cvVal] = protoToken.bits;
@@ -341,8 +341,6 @@ class USFM2Tokens {
                     )
                 }
             } else if (protoToken.type === "eol") {
-                this.tokenContext.para = null;
-                this.tokenContext.chars = [];
                 this.addTokens(
                     this.makeEolToken(protoToken)
                 )
@@ -356,7 +354,7 @@ class USFM2Tokens {
         return this.protoTokens.map(t => t.matched).join('');
     }
 
-    textFromBodyTokens() {
+    bodyTextFromTokens() {
         let texts = [];
         let tokenId = this.tokenContext.lastTokenId.body;
         while (tokenId) {
@@ -368,7 +366,7 @@ class USFM2Tokens {
     }
 
     textFromPara(firstT, lastT) {
-        return this.textForTokenRange(firstT, lastT, false);
+        return this.textForTokenRange(firstT, lastT, true);
     }
 
     tokenRange(firstT, lastT) {
@@ -398,24 +396,30 @@ class USFM2Tokens {
             if (!this.isHeaderTag(para.tag)) {
                 const paraText = this.textFromPara(para.firstToken, para.lastToken);
                 if (paraText !== '') {
-                    texts.push(paraText);
-                } else {
-                    texts.push("\n")
+                    texts.push(`[${para.tag}] ${paraText.trim()}`);
                 }
-                texts.push(`[${para.tag}] `);
             }
             paraId = para.previous;
         }
-        return texts.reverse().join('');
+        return texts.reverse().join('\n');
     }
 
-    textForCV(c, v) {
+    textForCV(c, v, c2, v2) {
         const cvTokensRecord = this.chapterVerses[c][v];
-        return this.textForTokenRange(
-            cvTokensRecord.firstToken,
-            cvTokensRecord.lastToken,
-            true
-        );
+        if (v2) {
+            const cv2TokensRecord = this.chapterVerses[c2][v2];
+            return this.textForTokenRange(
+                cvTokensRecord.firstToken,
+                cv2TokensRecord.lastToken,
+                true
+            );
+        } else {
+            return this.textForTokenRange(
+                cvTokensRecord.firstToken,
+                cvTokensRecord.lastToken,
+                true
+            );
+        }
     }
 
     cvForWord(w) {
@@ -449,6 +453,17 @@ class USFM2Tokens {
                 return `[${cv}] ${highlightedText}`;
             }
         );
+    }
+
+    wordFrequencies(minCount) {
+        return Object.entries(this.words).filter(
+            kv => kv[1].size >= minCount
+            ).sort(
+                (a, b) => b[1].size - a[1].size
+                ).map(
+                    kv => `${kv[0]}: ${kv[1].size}`
+                );
+
     }
 
 }

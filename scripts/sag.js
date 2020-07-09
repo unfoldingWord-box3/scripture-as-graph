@@ -1,251 +1,106 @@
 'use strict';
-const usfmjs = require('usfm-js');
-const fse = require('fs-extra');
-const xre = require('xregexp');
+require = require('esm')(module /* , options */);
 const path = require('path');
 
-class SAG {
+const U2T = require('../src/usfm2tokens.js').default;
 
-    constructor(usfm) {
-        console.log(this.heapUsed(), "used before init");
-        this.usfmJSON = usfmjs.toJSON(usfm);
-        this.headers = this.usfmJSON.headers;
-        this.chapterVerses = {};
-        this.words = {};
-        this.tokens = {};
-        this.currentChapter = null;
-        this.currentVerse = null;
-        this.timestamp = new Date().getTime();
-        this.processChapters();
-        console.log("Init in", this.elapsedTime(), "msec")
-        console.log(this.heapUsed(), "used after init\n");
-    }
+var timestamp;
 
-    elapsedTime() {
-        const now = new Date().getTime();
-        const ret = now - this.timestamp;
-        this.timestamp = now;
-        return ret;
-    }
+const elapsedTime = function () {
+    const now = new Date().getTime();
+    const ret = now - timestamp;
+    timestamp = now;
+    return ret;
+}
 
-    heapUsed() {
-        return (Math.round(process.memoryUsage().heapUsed / 1024 / 1024)) + " Mb";
-    }
-
-    getToken(str) {
-        const alphanumericRegex = xre("^([\\p{Letter}\\p{Number}]+)");
-        const whitespaceRegex = xre("^([\\s]+)");
-        const punctuationRegex = xre("^(\\p{Punctuation}+)");
-        if (str.length === 0) {
-            return ["", "", null]
-        } else {
-            var strMatch = alphanumericRegex.exec(str);
-            if (strMatch) {
-                return [strMatch[1], str.substring(strMatch[1].length), "alphanumeric"]
-            } else {
-                var strMatch = whitespaceRegex.exec(str);
-                if (strMatch) {
-                    return [strMatch[1], str.substring(strMatch[1].length), "whitespace"]
-                } else {
-                    var strMatch = punctuationRegex.exec(str);
-                    if (strMatch) {
-                        return [strMatch[1], str.substring(strMatch[1].length), "punctuation"]
-                    } else {
-                        throw `Could not match against '${str}' at Ch ${this.currentChapter}:${this.currentVerse}`;
-                    }
-                }
-            }
-        }
-    }
-
-    processChapters() {
-        var nextTokenId = 0;
-        for (var [chapter, chapterV] of Object.entries(this.usfmJSON.chapters)) {
-            this.currentVerse = null;
-            this.chapterVerses[chapter] = {
-                verses: {}  
-            };
-            const cNode = this.chapterVerses[chapter]; 
-            for (var [verse, verseV] of Object.entries(chapterV)) {
-                this.currentChapter = (verse === "front") ? null : chapter;
-                this.currentVerse = (verse === "front") ? null : verse;
-                if (this.currentVerse) {
-                    cNode.verses[verse] = {
-                        tokens: {}
-                    }
-                    const vNode = cNode.verses[verse];
-                    var verseText = "";
-                    for (var verseOb of verseV.verseObjects) {
-                        if ("text" in verseOb) {
-                            verseText += verseOb.text;
-                        }
-                    }
-                    while (verseText.length > 0) {
-                        const [match, rest, matchType] = this.getToken(verseText);
-                        const tokenId = ("000000" + nextTokenId++).slice(-6);
-                        this.tokens[tokenId] = {
-                            tokenId: tokenId,
-                            type: matchType,    
-                            text: match,
-                            chapter: this.currentChapter,
-                            verse: this.currentVerse
-                        };
-                        if (matchType === "alphanumeric") {
-                            const normalized = this.normalizeWord(match);
-                            this.tokens[tokenId].normalizedWord = normalized;
-                            if (normalized in this.words) {
-                                this.words[normalized].tokens.add(tokenId);
-                            } else {
-                                this.words[normalized] = {tokens: new Set([tokenId])};
-                            }
-                        }
-                        vNode.tokens[tokenId] = true;
-                        verseText = rest;
-                    }
-                }
-            }
-        
-        }    
-    }
-
-    compareByKey(a, b, k) {
-        if (a[k] > b[k]) {
-            return 1;
-        } else if (a[k] < b[k]) {
-            return -1;
-        } else {
-            return 0;
-        }
-    }
-
-    resolveAndSortTokens(tokenIds) {
-        return tokenIds.map(
-            t => this.tokens[t]
-        ).sort(
-            (a, b) => this.compareByKey(a, b, "tokenId")
-        );
-    }
-
-    tokensForVerses(ch, vrs) {
-        return this.resolveAndSortTokens(
-            vrs.reduce(
-                (acc, v) => acc.concat( 
-                    Object.keys(
-                        this.chapterVerses[ch].verses[v].tokens
-                    )
-                ),
-                []
-            )
-        );
-    }
-
-    tokenText(token) {
-        return token.text;
-    }
-
-    normalizedText(token) {
-        return token.normalizedWord;
-    }
-
-    wordTokens(tokens) {
-        return tokens.filter(t => t.type === "alphanumeric");
-    }
-
-    normalizeSpace(str) {
-        return xre("^\\s+").exec(str) ? " " : str;
-    }
-
-    normalizeWord(str) {
-        return str.toLowerCase();
-    }
-
-    wordsByFrequency() {
-        const wordArray = Array.from(Object.entries(this.words));
-        wordArray.sort(
-            (a, b) => {
-                if (a[1].tokens.size > b[1].tokens.size) {
-                    return 1;
-                } else if (a[1].tokens.size < b[1].tokens.size) {
-                    return -1;
-                } else {
-                    return 0;
-                }
-            }
-        );
-        return wordArray;
-    }
-
-    formatWordCountEntry(kv) {
-        const [word, data] = kv;
-        const tokens = data.tokens;
-        return word + " - " + this.wordCV(tokens).join(", ");
-    }
-
-    wordCV(tokenSet) {
-        const cv = new Set();
-        for (const tokenId of Array.from(tokenSet)) {
-            const token = this.tokens[tokenId];
-            cv.add(token.chapter + ":" + token.verse)
-        }
-        return Array.from(cv);
-    }
-
-    wordInCV(word, cv) {
-        const [chapter, verse] = cv.split(":");
-        const verseTokens = this.tokensForVerses(chapter, [verse]);
-        return verseTokens.map(t => t.normalizedWord === word ? t.text.toUpperCase() : this.normalizeSpace(t.text)).join("");
-    }
-
+const heapUsed = function() {
+    return (Math.round(process.memoryUsage().heapUsed / 1024 / 1024)) + " Mb";
 }
 
 const usage = function() {
     const pathBase = path.parse(process.argv[1]).base;
     console.log("\n* USAGE *");
     console.log("node", pathBase, "<usfmPath>", "stats");
-    console.log("node", pathBase, "<usfmPath>", "originalText", "23", "1,2,3");
-    console.log("node", pathBase, "<usfmPath>", "alphanumericOnlyText", "23", "1,2,3");
-    console.log("node", pathBase, "<usfmPath>", "wordRoots", "23", "1,2,3");
-    console.log("node", pathBase, "<usfmPath>", "normalizedText", "23", "1,2,3");
-    console.log("node", pathBase, "<usfmPath>", "wordSearch", "faithfulness");
-    console.log("node", pathBase, "<usfmPath>", "wordInVerse", "sworn");
-    console.log("node", pathBase, "<usfmPath>", "frequency", "200");
+    console.log("node", pathBase, "<usfmPath>", "protoTokens");
+    console.log("node", pathBase, "<usfmPath>", "usfm");
+    console.log("node", pathBase, "<usfmPath>", "tokens");
+    console.log("node", pathBase, "<usfmPath>", "tokensText");
+    console.log("node", pathBase, "<usfmPath>", "paras");
+    console.log("node", pathBase, "<usfmPath>", "parasText");
+    console.log("node", pathBase, "<usfmPath>", "verse", "<chapter>", "<verse>");
+    console.log("node", pathBase, "<usfmPath>", "verses", "<fromChapter>", "<fromVerse>", "<toChapter>", "<toVerse>");
+    console.log("node", pathBase, "<usfmPath>", "wordSearch", "<lcWord>");
+    console.log("node", pathBase, "<usfmPath>", "wordFrequencies", "<minCount>?");
 }
 
-var usfm;
-try {
-    usfm = fse.readFileSync(process.argv[2], "utf-8");
-} catch (err) {
-    console.log("Could not load USFM:", err);
+if (process.argv.length < 3) {
+    throw new Error(`Not enough arguments: '${process.argv[0]} ${process.argv[1]} help' might, err, help`);
+}
+
+if (process.argv[2] === "help") {
     usage();
-    return;
-}
-
-const sag = new SAG(usfm);
-
-if (process.argv[3] === "stats") {
-    console.log("Tokens:", Object.keys(sag.tokens).length);
-    console.log("Chapters", Object.keys(sag.chapterVerses).length);
-    console.log("Verses:", Object.values(sag.chapterVerses).map(c => Object.keys(c.verses).length).reduce((acc, v) => acc + v));
-    console.log("Unique Words:", Object.keys(sag.words).length);
-} else if (process.argv[3] === "usfmjs") {
-    console.log(JSON.stringify(sag.usfmJSON, null, 2));
-} else if (process.argv[3] === "originalText") {
-    console.log(sag.tokensForVerses(process.argv[4], process.argv[5].split(",")).map(t => sag.tokenText(t)).join(""));
-} else if (process.argv[3] === "alphanumericOnlyText") {
-    console.log(sag.wordTokens(sag.tokensForVerses(process.argv[4], process.argv[5].split(","))).map(t => sag.tokenText(t)).join(" "));
-} else if (process.argv[3] === "wordRoots") {
-    console.log(sag.wordTokens(sag.tokensForVerses(process.argv[4], process.argv[5].split(","))).map(t => sag.normalizedText(t)).join(" "));
-} else if (process.argv[3] === "normalizedText") {
-    console.log(sag.tokensForVerses(process.argv[4], process.argv[5].split(",")).map(t => sag.normalizeSpace(sag.tokenText(t))).join(""));
-} else if (process.argv[3] === "wordSearch") {
-    console.log(process.argv[4] + " - " + sag.wordCV(sag.words[process.argv[4]].tokens).join(", "));
-} else if (process.argv[3] == "wordInVerse") {
-    sag.wordCV(sag.words[process.argv[4]].tokens).map(cv => { return cv + ": " + sag.wordInCV(process.argv[4], cv)}).forEach(l => console.log(l));
-} else if (process.argv[3] === "frequency") {
-    sag.wordsByFrequency().reverse().filter(kv => kv[1].tokens.size > process.argv[4]).map(kv => kv[0] + ": " + kv[1].tokens.size).forEach(l => console.log(l));
 } else {
-    usage();
-}
-
-console.log("\nQuery in", sag.elapsedTime(), "msec");
-console.log(sag.heapUsed(), "used after query");
+    const scriptName = process.argv[1];
+    const usfmSource = process.argv[2];
+    const commandType = process.argv[3];
+    const otherArgs = process.argv.slice(4);
+    elapsedTime();
+    const u2t = new U2T(usfmSource);
+    console.log(`Init in ${elapsedTime()} msec`);
+    if (commandType === "stats") {
+        console.log("\nCOUNTS OF INTERNALS");
+        console.log("  Tokens:", Object.keys(u2t.tokens).length);
+        console.log("  Chapters", Object.keys(u2t.chapterVerses).length);
+        console.log("  Verses:", Object.values(u2t.chapterVerses).map(
+            c => Object.keys(c).length).reduce((acc, v) => acc + v)
+        );
+        console.log("  Unique Words:", Object.keys(u2t.words).length);
+    } else if (commandType === "protoTokens") {
+        console.log("\nPROTOTOKENS");
+        console.log(JSON.stringify(u2t.protoTokens, null, 2));
+    } else if (commandType === "usfm") {
+        console.log("\nUSFM FROM PRE-TOKENS");
+        console.log(u2t.reconstitutedUSFM());
+    } else if (commandType === "tokens") {
+        console.log("\nTOKENS");
+        console.log(JSON.stringify(u2t.tokens, null, 2));
+    } else if (commandType === "tokensText") {
+        console.log("\nNORMALIZED TEXT FROM TOKENS");
+        console.log(u2t.bodyTextFromTokens());
+    } else if (commandType === "paras") {
+        console.log("\nPARAS");
+        console.log(JSON.stringify(u2t.paras, null, 2));
+    } else if (commandType === "parasText") {
+        console.log("\nTEXT FROM PARAS");
+        console.log(u2t.textFromParas());
+    } else if (commandType === "verse") {
+        console.log("\nTEXT FOR ONE VERSE");
+        console.log(
+            u2t.textForCV(
+                otherArgs[0],
+                otherArgs[1]
+            )
+        );
+    } else if (commandType === "verses") {
+        console.log("\nTEXT FOR VERSES");
+        console.log(
+            u2t.textForCV(
+                otherArgs[0],
+                otherArgs[1],
+                otherArgs[2],
+                otherArgs[3]
+            )
+        );
+    } else if (commandType === "wordSearch") {
+        console.log("\nWORD SEARCH");
+        console.log(u2t.wordInVerses(otherArgs[0]).join("\n"));
+    } else if (commandType === "wordFrequencies") {
+        const minCount = parseInt(otherArgs[0] || "20");
+        console.log(`\nWORD FREQUENCIES (>= ${minCount})`);
+        console.log(u2t.wordFrequencies(minCount).join("\n"));
+    } else {
+        usage();
+    }
+    console.log("\nQuery in", elapsedTime(), "msec");
+    console.log(heapUsed(), "used after query");
+    }

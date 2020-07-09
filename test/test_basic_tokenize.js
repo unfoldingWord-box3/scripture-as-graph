@@ -43,7 +43,7 @@ describe('Basic Tokenizing', function() {
 
     it('Returns text from tokens', function() {
         const u2t = new USFM2Tokens(path.join(this.testDataDir, "en_ult_lam.usfm"));
-        assert.match(u2t.textFromBodyTokens(), /We get our bread only by risking our lives/);
+        assert.match(u2t.bodyTextFromTokens(), /We get our bread only by risking our lives/);
     });
 
     it('Builds an index to paras', function() {
@@ -70,6 +70,16 @@ describe('Basic Tokenizing', function() {
         for(const v of eldersInVerses) {
             assert.match(v, /<elders>/);
         }
-    }); 
+    });
+
+    it('Finds word frequencies', function() {
+        const u2t = new USFM2Tokens(path.join(this.testDataDir, "en_ult_lam.usfm"));
+        const frequencies = u2t.wordFrequencies(17);
+        for (const wc of frequencies) {
+            const [word, count] = wc.split(": ");
+            assert(parseInt(count) >= 17);
+            assert(word.length > 0)
+        }
+    });
 
 });
