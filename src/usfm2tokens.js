@@ -297,7 +297,7 @@ class USFM2Tokens {
             } else if (protoToken.type === "tag") {
                 const tagName = protoToken.bits[0];
                 if (this.isHeaderTag(tagName)) {
-                    this.headers[protoToken.bits[0]] = "";
+                    this.headers[protoToken.bits[0]] = [];
                 }
                 if (this.isParaTag(tagName)) {
                     const lastParaId = this.tokenContext.lastParaId;
@@ -334,7 +334,7 @@ class USFM2Tokens {
                 }
             } else if (protoToken.type === "text") {
                 if (this.isHeaderTag(this.tokenContext.para)) {
-                    this.headers[this.tokenContext.para] += protoToken.matched;
+                    this.headers[this.tokenContext.para].push(protoToken.matched);
                 } else {
                     this.addTokens(
                         this.makeTextTokens(protoToken)
