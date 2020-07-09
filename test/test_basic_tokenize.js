@@ -63,7 +63,11 @@ describe('Basic Tokenizing', function() {
 
     it('Finds word in verses', function() {
         const u2t = new USFM2Tokens(path.join(this.testDataDir, "en_ult_lam.usfm"));
-        assert.equal(u2t.wordInVerses("elders").length, u2t.cvForWord("elders").length);
+        const eldersInVerses = u2t.wordInVerses("elders");
+        assert.equal(eldersInVerses.length, u2t.cvForWord("elders").length);
+        for(const v of eldersInVerses) {
+            assert.match(v, /<elders>/);
+        }
     }); 
 
 });
