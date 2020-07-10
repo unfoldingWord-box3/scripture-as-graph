@@ -89,7 +89,7 @@ class USFM2Tokens {
 
     setupUsfmLookups() {
         this.usfmTags = {
-            headers: ["id", "usfm", "ide", "sts", "rem", "h", "toc[1-9]", "toca[1-9]"],
+            headers: ["id", "usfm", "ide", "sts", "rem", "h", "toc[1-3]", "toca[1-3]"],
             paras: [
                 "mt[1-9]?", "mte[1-9]?", "ms[1-9]?", "mr", "s[1-9]?", "sr", "r", "d", "sp", "sd[1-9]?",
                 "p", "m", "po", "pr", "cls", "pmo", "pm", "pmc", "pmr", "pi[1-9]?", "mi", "nb", "pc", "ph[1-9]?", "b",
@@ -101,6 +101,9 @@ class USFM2Tokens {
                 "p", "m", "po", "pr", "cls", "pmo", "pm", "pmc", "pmr", "pi[1-9]?", "mi", "pc", "ph[1-9]?",
                 "q[1-9]?", "qr[1-9]?", "qc[1-9]?", "qa", "qm[1-9]?", "qd",
                 "lh", "li[1-9]?", "lf", "lim[1-9]?"
+            ],
+            headings: [
+                "mt[1-9]?", "mte[1-9]?", "ms[1-9]?", "mr", "s[1-9]?", "sr", "r", "sp", "sd[1-9]?"
             ]
         };
     }
@@ -139,6 +142,10 @@ class USFM2Tokens {
 
     isHeaderTag(str) {
         return this.tagMatchesInArray(this.usfmTags.headers, str);
+    }
+
+    isHeadingTag(str) {
+        return this.tagMatchesInArray(this.usfmTags.headings, str);
     }
 
     isParaTag(str) {
@@ -313,6 +320,16 @@ class USFM2Tokens {
                     this.tokenContext.lastParaId = thisParaId;
                     this.tokenContext.para = tagName;
                     this.tokenContext.chars = [];
+                    if (this.isHeadingTag(tagName)) {
+                        this.tokenContext.tokenDestination = "heading";
+                        this.tokenContext.lastTokenId.heading = null;
+                        if (!(tagName in this.headings)) {
+                            this.headings[tagName] = new Set();
+                        }
+                        this.headings[tagName].add(thisParaId); 
+                    } else {
+                        this.tokenContext.tokenDestination = "body";
+                    }
                 }
             } else if (protoToken.type == "cv") {
                 const [cvType, cvVal] = protoToken.bits;
@@ -365,8 +382,8 @@ class USFM2Tokens {
         return texts.reverse().join('');
     }
 
-    textFromPara(firstT, lastT) {
-        return this.textForTokenRange(firstT, lastT, true);
+    textFromPara(para) {
+        return this.textForTokenRange(para.firstToken, para.lastToken, true);
     }
 
     tokenRange(firstT, lastT) {
@@ -394,7 +411,7 @@ class USFM2Tokens {
         while (paraId) {
             let para = this.paras[paraId];
             if (!this.isHeaderTag(para.tag)) {
-                const paraText = this.textFromPara(para.firstToken, para.lastToken);
+                const paraText = this.textFromPara(para);
                 if (paraText !== '') {
                     texts.push(`[${para.tag}] ${paraText.trim()}`);
                 }
@@ -464,6 +481,18 @@ class USFM2Tokens {
                     kv => `${kv[0]}: ${kv[1].size}`
                 );
 
+    }
+
+    reportHeadings() {
+        const ret = [];
+        for (const [k, v] of Object.entries(this.headings)) {
+            ret.push(`${k}: ` +
+                Array.from(v).map(
+                    pi => `\n  ${this.textFromPara(this.paras[pi])}`
+                ).join('')
+            )
+        }
+        return ret.join("\n");
     }
 
 }

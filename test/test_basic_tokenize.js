@@ -82,4 +82,11 @@ describe('Basic Tokenizing', function() {
         }
     });
 
+    it('Stores headings separately', function() {
+        const u2t = new USFM2Tokens(path.join(this.testDataDir, "oeb_jol.usfm"));
+        ["mt", "s"].forEach(h => {
+            assert.property(u2t.headings, h)
+        });
+    });
+
 });
