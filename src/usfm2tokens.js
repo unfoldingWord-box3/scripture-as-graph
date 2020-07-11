@@ -93,7 +93,7 @@ class USFM2Tokens {
             paras: [
                 "mt[1-9]?", "mte[1-9]?", "ms[1-9]?", "mr", "s[1-9]?", "sr", "r", "d", "sp", "sd[1-9]?",
                 "p", "m", "po", "pr", "cls", "pmo", "pm", "pmc", "pmr", "pi[1-9]?", "mi", "nb", "pc", "ph[1-9]?", "b",
-                "q[1-9]?", "qr[1-9]?", "qc[1-9]?", "qa", "qm[1-9]?", "qd",
+                "q[1-9]?", "qr[1-9]?", "qc[1-9]?", "qa", "qm[1-9]?", "qd", "cl",
                 "lh", "li[1-9]?", "lf", "lim[1-9]?"
             ],
             canonicalParas: [
@@ -239,11 +239,11 @@ class USFM2Tokens {
 
     maybeAddParaToToken(token) {
         if (this.tokenContext.lastParaId) {
-            token.para = this.tokenContextLastParaId;
+            token.para = this.tokenContext.lastParaId;
             const paraRecord = this.paras[this.tokenContext.lastParaId];
-            paraRecord.lastToken = this.currentLastTokenId();
+            paraRecord.lastToken = token.tokenId;
             if (!paraRecord.firstToken) {
-                paraRecord.firstToken = this.currentLastTokenId();
+                paraRecord.firstToken = token.tokenId;
             }
         }
     }
@@ -290,10 +290,10 @@ class USFM2Tokens {
             type: "eol",    
             text: pt.matched
         };
-        this.setCurrentLastTokenId(thisTokenId);
         this.maybeAddParaToToken(tokenObject);
         const ret = {};
         ret[thisTokenId] = tokenObject;
+        this.setCurrentLastTokenId(thisTokenId);
         return ret;
     }
 
@@ -365,6 +365,22 @@ class USFM2Tokens {
         }
     }
 
+    /* TOKEN LINKED LISTS */
+
+    tokenRange(firstT, lastT) {
+        let ret = [];
+        let tokenId = lastT;
+        while (tokenId) {
+            let token = this.tokens[tokenId];
+            ret.push(token);
+            if (tokenId == firstT) {
+                break;
+            }
+            tokenId = token.previous;
+        };
+        return ret.reverse();
+    }
+
     /* ACCESSORS (currently mainly for testing) */
 
     reconstitutedUSFM() {
@@ -386,20 +402,6 @@ class USFM2Tokens {
         return this.textForTokenRange(para.firstToken, para.lastToken, true);
     }
 
-    tokenRange(firstT, lastT) {
-        let ret = [];
-        let tokenId = lastT;
-        while (tokenId) {
-            let token = this.tokens[tokenId];
-            ret.push(token);
-            if (tokenId == firstT) {
-                break;
-            }
-            tokenId = token.previous;
-        };
-        return ret.reverse();
-    }
-
     textForTokenRange(firstT, lastT, singleLine) {
         let textArray = this.tokenRange(firstT, lastT).map(t => this.normalizedText(t, singleLine));
         return textArray.join('');
@@ -419,6 +421,23 @@ class USFM2Tokens {
             paraId = para.previous;
         }
         return texts.reverse().join('\n');
+    }
+
+    describePara(para) {
+        let tokens = this.tokenRange(para.firstToken, para.lastToken);
+        console.log(`${para.paraId} (${para.tag}, ${tokens.length} token(s))`);
+        for (const t of tokens) {
+            console.log(`    ${t.tokenId} (${t.type}) ${this.normalizedText(t)}`);
+        }
+    }
+
+    describeParas() {
+        let paraId = this.tokenContext.lastParaId;
+        while (paraId) {
+            let para = this.paras[paraId];
+            this.describePara(para);
+            paraId = para.previous;
+        }
     }
 
     textForCV(c, v, c2, v2) {
@@ -483,12 +502,16 @@ class USFM2Tokens {
 
     }
 
-    reportHeadings() {
+    describeHeadings() {
         const ret = [];
         for (const [k, v] of Object.entries(this.headings)) {
             ret.push(`${k}: ` +
                 Array.from(v).map(
-                    pi => `\n  ${this.textFromPara(this.paras[pi])}`
+                    pi => {
+                        const paraText = this.textFromPara(this.paras[pi]);
+                        const nTokens = this.tokenRange(this.paras[pi].firstToken, this.paras[pi].lastToken);
+                        return "\n   " + nTokens.length + ": " + (paraText.trim().length > 0 ? `'${paraText}'` : '<empty>');
+                    }
                 ).join('')
             )
         }

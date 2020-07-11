@@ -27,7 +27,8 @@ const usage = function() {
     console.log("node", pathBase, "<usfmPath>", "tokensText");
     console.log("node", pathBase, "<usfmPath>", "paras");
     console.log("node", pathBase, "<usfmPath>", "parasText");
-    console.log("node", pathBase, "<usfmPath>", "headings");
+    console.log("node", pathBase, "<usfmPath>", "describeParas");
+    console.log("node", pathBase, "<usfmPath>", "describeHeadings");
     console.log("node", pathBase, "<usfmPath>", "verse", "<chapter>", "<verse>");
     console.log("node", pathBase, "<usfmPath>", "verses", "<fromChapter>", "<fromVerse>", "<toChapter>", "<toVerse>");
     console.log("node", pathBase, "<usfmPath>", "wordSearch", "<lcWord>");
@@ -74,9 +75,12 @@ if (process.argv[2] === "help") {
     } else if (commandType === "parasText") {
         console.log("\nTEXT FROM PARAS");
         console.log(u2t.textFromParas());
-    } else if (commandType === "headings") {
+    } else if (commandType === "describeParas") {
+        console.log("\nDESCRIBE PARAS");
+        u2t.describeParas();
+    } else if (commandType === "describeHeadings") {
         console.log("\nHEADINGS");
-        console.log(u2t.reportHeadings());
+        console.log(u2t.describeHeadings());
     } else if (commandType === "verse") {
         console.log("\nTEXT FOR ONE VERSE");
         console.log(
