@@ -35,6 +35,7 @@ class USFM2Tokens {
         this.standoff = {
             header: {},
             heading: {},
+            rem: {},
             note: {}
         }
         this.words = {};
@@ -46,6 +47,7 @@ class USFM2Tokens {
                 body: null,
                 header: null,
                 heading: null,
+                rem: null,
                 note: null,
             },
             chapter: null,
@@ -92,12 +94,13 @@ class USFM2Tokens {
 
     setupUsfmLookups() {
         this.usfmTags = {
-            headers: ["id", "usfm", "ide", "sts", "rem", "h", "toc[1-3]", "toca[1-3]"],
+            headers: ["id", "usfm", "ide", "sts", "h", "toc[1-3]", "toca[1-3]"],
             paras: [
                 "mt[1-9]?", "mte[1-9]?", "ms[1-9]?", "mr", "s[1-9]?", "sr", "r", "d", "sp", "sd[1-9]?",
                 "p", "m", "po", "pr", "cls", "pmo", "pm", "pmc", "pmr", "pi[1-9]?", "mi", "nb", "pc", "ph[1-9]?", "b",
                 "q[1-9]?", "qr[1-9]?", "qc[1-9]?", "qa", "qm[1-9]?", "qd", "cl",
-                "lh", "li[1-9]?", "lf", "lim[1-9]?"
+                "lh", "li[1-9]?", "lf", "lim[1-9]?",
+                "rem"
             ],
             canonicalParas: [
                 "d",
@@ -333,6 +336,8 @@ class USFM2Tokens {
                         this.newStandoffPara("header", tagName, thisParaId);
                     } else if (this.isHeadingTag(tagName)) {
                         this.newStandoffPara("heading", tagName, thisParaId);
+                    } else if (tagName == "rem") {
+                        this.newStandoffPara("rem", tagName, thisParaId);
                     } else {
                         this.tokenContext.tokenDestination = "body";
                     }

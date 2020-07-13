@@ -91,4 +91,17 @@ describe('Basic Tokenizing', function() {
         });
     });
 
+    it('Stores rems separately', function() {
+        const u2t = new USFM2Tokens(path.join(this.testDataDir, "oeb_jol.usfm"));
+        let found = false;
+        for (const paraId of Array.from(u2t.standoff.rem["rem"])) {
+            const para = u2t.paras[paraId];
+            if (u2t.textFromPara(para) === "NRSV and JPS versification") {
+                found = true;
+                break
+            };
+        }
+        assert(found);
+    });
+
 });
