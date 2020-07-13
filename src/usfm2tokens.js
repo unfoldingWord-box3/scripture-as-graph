@@ -29,14 +29,13 @@ class USFM2Tokens {
         this.tokens = {};
         this.paras = {};
         this.parasByTag = {};
-        this.chars = {};
-        this.charsByTag = {};
         this.chapterVerses = {};
         this.standoff = {
             header: {},
             heading: {},
             rem: {},
-            note: {}
+            note: {},
+            chars: {}
         }
         this.words = {};
         this.errors = [];
@@ -52,7 +51,8 @@ class USFM2Tokens {
             },
             chapter: null,
             verses: null,
-            chars: null,
+            charsStack: [],
+            charsIdStack: [],
             para: null,
             paraCount: 0
         };
@@ -97,6 +97,7 @@ class USFM2Tokens {
             headers: ["id", "usfm", "ide", "sts", "h", "toc[1-3]", "toca[1-3]"],
             paras: [
                 "mt[1-9]?", "mte[1-9]?", "ms[1-9]?", "mr", "s[1-9]?", "sr", "r", "d", "sp", "sd[1-9]?",
+                "cp", "cd",
                 "p", "m", "po", "pr", "cls", "pmo", "pm", "pmc", "pmr", "pi[1-9]?", "mi", "nb", "pc", "ph[1-9]?", "b",
                 "q[1-9]?", "qr[1-9]?", "qc[1-9]?", "qa", "qm[1-9]?", "qd", "cl",
                 "lh", "li[1-9]?", "lf", "lim[1-9]?",
@@ -107,6 +108,16 @@ class USFM2Tokens {
                 "p", "m", "po", "pr", "cls", "pmo", "pm", "pmc", "pmr", "pi[1-9]?", "mi", "pc", "ph[1-9]?",
                 "q[1-9]?", "qr[1-9]?", "qc[1-9]?", "qa", "qm[1-9]?", "qd",
                 "lh", "li[1-9]?", "lf", "lim[1-9]?"
+            ],
+            chars: [
+                "rq",
+                "ca", "va", "vp",
+                "qs", "qac",
+                "litl", "lik", "liv[1-9]?",
+                "f", "fe", "fv", "fdc", "fm",
+                "x", "xop", "xot", "xnt", "xdc",
+                "add", "bk", "dc", "k", "nd", "ord", "pn", "png", "qt", "sig", "sls", "tl", "wj",
+                "em", "bd", "it", "bdit", "no", "sc", "sup"
             ],
             headings: [
                 "mt[1-9]?", "mte[1-9]?", "ms[1-9]?", "mr", "s[1-9]?", "sr", "r", "sp", "sd[1-9]?"
@@ -162,6 +173,12 @@ class USFM2Tokens {
         return this.tagMatchesInArray(this.usfmTags.canonicalParas, str);
     }
 
+    isCharsTag(str) {
+        return this.tagMatchesInArray(this.usfmTags.chars, str);
+    }
+
+    /* PARSE PROTOTOKENS */
+
     getTextFragment(str) {
         const alphanumericRegex = xre("^([\\p{Letter}\\p{Number}]+)");
         const whitespaceRegex = xre("^([\\s]+)");
@@ -187,8 +204,6 @@ class USFM2Tokens {
             }
         }
     }
-
-    /* PARSE PROTOTOKENS */
 
     lastTokenIdFor(dest) {
         return this.tokenContext.lastTokenId[dest];
@@ -234,10 +249,11 @@ class USFM2Tokens {
         if (this.isCanonicalParaTag(this.tokenContext.para)) {
             if (this.tokenContext.chapter) {
                 token.chapter = this.tokenContext.chapter;
-                this.addTokenToCVLookup(token);
             }
             if (this.tokenContext.verses) {
                 token.verses = this.tokenContext.verses;
+            }
+            if (this.tokenContext.chapter || this.tokenContext.verses) {
                 this.addTokenToCVLookup(token);
             }
         }
@@ -264,6 +280,16 @@ class USFM2Tokens {
         }
     }
 
+    maybeUpdateChars(token) {
+        if (this.tokenContext.charsIdStack.length > 0) {
+            const charsRecord = Array.from(this.standoff.chars[this.tokenContext.charsStack[0]]).filter(x => x.charsId === this.tokenContext.charsIdStack[0])[0];
+            charsRecord.lastToken = token.tokenId;
+            if (!charsRecord.firstToken) {
+                charsRecord.firstToken = token.tokenId;
+            }
+        }
+    }
+
     makeTextTokens(pt) {
         let ptText = pt.matched;
         let ret = {};
@@ -280,6 +306,7 @@ class USFM2Tokens {
             this.maybeAddParaToToken(tokenObject);
             this.maybeAddCVToToken(tokenObject);
             this.addWordLookup(tokenObject);
+            this.maybeUpdateChars(tokenObject);
             ret[thisTokenId] = tokenObject;
             this.setCurrentLastTokenId(thisTokenId);
             ptText = rest;
@@ -318,6 +345,7 @@ class USFM2Tokens {
                 this.errors.push(`Bare backslash in para ${this.tokenContext.paraCount}`);
             } else if (protoToken.type === "tag") {
                 const tagName = protoToken.bits[0];
+                const tagStar = protoToken.bits[1];
                 if (this.isParaTag(tagName)) {
                     const lastParaId = this.tokenContext.lastParaId;
                     const thisParaId = uuid4();
@@ -331,7 +359,7 @@ class USFM2Tokens {
                     };
                     this.tokenContext.lastParaId = thisParaId;
                     this.tokenContext.para = tagName;
-                    this.tokenContext.chars = [];
+                    this.tokenContext.charsStack = [];
                     if (this.isHeaderTag(tagName)) {
                         this.newStandoffPara("header", tagName, thisParaId);
                     } else if (this.isHeadingTag(tagName)) {
@@ -340,6 +368,31 @@ class USFM2Tokens {
                         this.newStandoffPara("rem", tagName, thisParaId);
                     } else {
                         this.tokenContext.tokenDestination = "body";
+                    }
+                } else if (this.isCharsTag(tagName)) {
+                    if (tagStar === "*") {
+                        if (this.tokenContext.charsStack.length > 0 && this.tokenContext.charsStack[0] === tagName) {
+                            this.tokenContext.charsStack.shift();
+                            this.tokenContext.charsIdStack.shift();
+                        } else {
+                            const errMsg = `Char mismatch (${this.tokenContext.charsStack.length > 0 ? this.tokenContext.charsStack[0] : "<none>"}/${tagName})`;
+                            // console.log(errMsg);
+                            this.errors.push(errMsg);
+                        }
+                    } else {
+                        const charsId = uuid4();
+                        if (!(tagName in this.standoff.chars)) {
+                            this.standoff.chars[tagName] = new Set();
+                        }
+                        this.standoff.chars[tagName].add({
+                            charsId: charsId,
+                            paraId: this.tokenContext.lastParaId,
+                            tag: tagName,
+                            firstToken: null,
+                            lastToken: null
+                        });
+                        this.tokenContext.charsStack.unshift(tagName);
+                        this.tokenContext.charsIdStack.unshift(charsId);
                     }
                 }
             } else if (protoToken.type == "cv") {
@@ -523,9 +576,9 @@ class USFM2Tokens {
             ret.push(`${k}:\n` +
                 Array.from(v).map(
                     pi => {
-                        const paraText = this.textFromPara(this.paras[pi]);
-                        const nTokens = this.tokenRange(this.paras[pi].firstToken, this.paras[pi].lastToken);
-                        return (paraText.trim().length > 0 ? `   '${paraText}'\n` : '   <empty>\n');
+                        console.log(pi)
+                        const sectionText = this.textFromPara(this.paras[pi]);
+                        return (sectionText.trim().length > 0 ? `   '${sectionText}'\n` : '   <empty>\n');
                     }
                 ).join('')
             )
@@ -533,6 +586,20 @@ class USFM2Tokens {
         return ret.join("\n");
     }
 
+    describeChars() {
+        const ret = [];
+        for (const [k, v] of Object.entries(this.standoff.chars)) {
+            ret.push(`${k}:\n` +
+                Array.from(v).map(
+                    ch => {
+                        const sectionText = this.textFromPara(ch);
+                        return (sectionText.trim().length > 0 ? `   '${sectionText}'\n` : '   <empty>\n');
+                    }
+                ).join('')
+            )
+        }
+        return ret.join("\n");
+    }
 }
 
 export default USFM2Tokens;

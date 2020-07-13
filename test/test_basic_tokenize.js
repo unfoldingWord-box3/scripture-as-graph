@@ -104,4 +104,11 @@ describe('Basic Tokenizing', function() {
         assert(found);
     });
 
+    it('Indexes chars (On Psalms, slow)', function() {
+        this.timeout(10000);
+        const u2t = new USFM2Tokens(path.join(this.testDataDir, "en_ult_psa.usfm"));
+        assert.property(u2t.standoff.chars, "qs");
+        assert.equal(u2t.textFromPara(Array.from(u2t.standoff.chars.qs)[0]), "Selah");
+    })
+
 });
