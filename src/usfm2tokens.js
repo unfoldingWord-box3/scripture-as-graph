@@ -32,9 +32,11 @@ class USFM2Tokens {
         this.chars = {};
         this.charsByTag = {};
         this.chapterVerses = {};
-        this.headers = {};
-        this.headings = {};
-        this.notes = {};
+        this.standoff = {
+            header: {},
+            heading: {},
+            note: {}
+        }
         this.words = {};
         this.errors = [];
         this.newTokenContext = {
@@ -298,6 +300,15 @@ class USFM2Tokens {
         return ret;
     }
 
+    newStandoffPara(standoffType, tagName, paraId) {
+        this.tokenContext.tokenDestination = standoffType;
+        this.tokenContext.lastTokenId.header = null;
+        if (!(tagName in this.standoff.header)) {
+            this.standoff[standoffType][tagName] = new Set();
+        }
+        this.standoff[standoffType][tagName].add(paraId);
+    }
+
     parseProtoTokens() {
         for (const protoToken of this.protoTokens) {
             if (protoToken.type === "bareSlash") {
@@ -319,19 +330,9 @@ class USFM2Tokens {
                     this.tokenContext.para = tagName;
                     this.tokenContext.chars = [];
                     if (this.isHeaderTag(tagName)) {
-                        this.tokenContext.tokenDestination = "header";
-                        this.tokenContext.lastTokenId.header = null;
-                        if (!(tagName in this.headers)) {
-                            this.headers[tagName] = new Set();
-                        }
-                        this.headers[tagName].add(thisParaId);
+                        this.newStandoffPara("header", tagName, thisParaId);
                     } else if (this.isHeadingTag(tagName)) {
-                        this.tokenContext.tokenDestination = "heading";
-                        this.tokenContext.lastTokenId.heading = null;
-                        if (!(tagName in this.headings)) {
-                            this.headings[tagName] = new Set();
-                        }
-                        this.headings[tagName].add(thisParaId); 
+                        this.newStandoffPara("heading", tagName, thisParaId);
                     } else {
                         this.tokenContext.tokenDestination = "body";
                     }
@@ -504,16 +505,16 @@ class USFM2Tokens {
     }
 
     describeHeadings() {
-        return this.describeStandoff("headings");
+        return this.describeStandoff("heading");
     }
 
     describeHeaders() {
-        return this.describeStandoff("headers");
+        return this.describeStandoff("header");
     }
 
     describeStandoff(standoffType) {
         const ret = [];
-        for (const [k, v] of Object.entries(this[standoffType])) {
+        for (const [k, v] of Object.entries(this.standoff[standoffType])) {
             ret.push(`${k}:\n` +
                 Array.from(v).map(
                     pi => {

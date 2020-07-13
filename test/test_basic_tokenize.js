@@ -21,10 +21,10 @@ describe('Basic Tokenizing', function() {
         const u2t = new USFM2Tokens(path.join(this.testDataDir, "en_ult_lam.usfm"));
         assert.equal(u2t.reconstitutedUSFM().length, u2t.usfm.length);
         for (const tag of ["ide", "h", "toc1", "toc2", "toc3"]) {
-            assert.property(u2t.headers, tag);
-            assert(u2t.headers[tag].size > 0);
+            assert.property(u2t.standoff.header, tag);
+            assert(u2t.standoff.header[tag].size > 0);
         }
-        for (const paraId of Array.from(u2t.headers["toc1"])) {
+        for (const paraId of Array.from(u2t.standoff.header["toc1"])) {
             const para = u2t.paras[paraId];
             assert.match(u2t.textFromPara(para), /The Book of Lamentations/);
         }
@@ -87,7 +87,7 @@ describe('Basic Tokenizing', function() {
     it('Stores headings separately', function() {
         const u2t = new USFM2Tokens(path.join(this.testDataDir, "oeb_jol.usfm"));
         ["mt", "s"].forEach(h => {
-            assert.property(u2t.headings, h)
+            assert.property(u2t.standoff.heading, h)
         });
     });
 
