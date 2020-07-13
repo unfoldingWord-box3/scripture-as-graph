@@ -570,6 +570,10 @@ class USFM2Tokens {
         return this.describeStandoff("header");
     }
 
+    describeRems() {
+        return this.describeStandoff("rem");
+    }
+
     describeStandoff(standoffType) {
         const ret = [];
         for (const [k, v] of Object.entries(this.standoff[standoffType])) {

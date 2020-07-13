@@ -86,6 +86,9 @@ if (process.argv[2] === "help") {
     } else if (commandType === "describeHeadings") {
         console.log("\nHEADINGS");
         console.log(u2t.describeHeadings());
+    } else if (commandType === "describeRems") {
+        console.log("\nREMS");
+        console.log(u2t.describeRems());
     } else if (commandType === "describeChars") {
         console.log("\nCHARS");
         console.log(u2t.describeChars());
