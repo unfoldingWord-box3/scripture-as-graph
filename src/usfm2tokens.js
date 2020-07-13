@@ -333,7 +333,7 @@ class USFM2Tokens {
     newStandoffPara(standoffType, tagName, paraId) {
         this.tokenContext.tokenDestination = standoffType;
         this.tokenContext.lastTokenId.header = null;
-        if (!(tagName in this.standoff.header)) {
+        if (!(tagName in this.standoff[standoffType])) {
             this.standoff[standoffType][tagName] = new Set();
         }
         this.standoff[standoffType][tagName].add(paraId);
@@ -576,7 +576,6 @@ class USFM2Tokens {
             ret.push(`${k}:\n` +
                 Array.from(v).map(
                     pi => {
-                        console.log(pi)
                         const sectionText = this.textFromPara(this.paras[pi]);
                         return (sectionText.trim().length > 0 ? `   '${sectionText}'\n` : '   <empty>\n');
                     }
