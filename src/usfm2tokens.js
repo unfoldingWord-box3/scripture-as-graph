@@ -26,13 +26,13 @@ class USFM2Tokens {
 
     setupLookups() {
         this.protoTokens = [];
-        this.headers = {};
         this.tokens = {};
         this.paras = {};
         this.parasByTag = {};
         this.chars = {};
         this.charsByTag = {};
         this.chapterVerses = {};
+        this.headers = {};
         this.headings = {};
         this.notes = {};
         this.words = {};
@@ -42,6 +42,7 @@ class USFM2Tokens {
             lastParaId: null,
             lastTokenId: {
                 body: null,
+                header: null,
                 heading: null,
                 note: null,
             },
@@ -303,9 +304,6 @@ class USFM2Tokens {
                 this.errors.push(`Bare backslash in para ${this.tokenContext.paraCount}`);
             } else if (protoToken.type === "tag") {
                 const tagName = protoToken.bits[0];
-                if (this.isHeaderTag(tagName)) {
-                    this.headers[protoToken.bits[0]] = [];
-                }
                 if (this.isParaTag(tagName)) {
                     const lastParaId = this.tokenContext.lastParaId;
                     const thisParaId = uuid4();
@@ -320,7 +318,14 @@ class USFM2Tokens {
                     this.tokenContext.lastParaId = thisParaId;
                     this.tokenContext.para = tagName;
                     this.tokenContext.chars = [];
-                    if (this.isHeadingTag(tagName)) {
+                    if (this.isHeaderTag(tagName)) {
+                        this.tokenContext.tokenDestination = "header";
+                        this.tokenContext.lastTokenId.header = null;
+                        if (!(tagName in this.headers)) {
+                            this.headers[tagName] = new Set();
+                        }
+                        this.headers[tagName].add(thisParaId);
+                    } else if (this.isHeadingTag(tagName)) {
                         this.tokenContext.tokenDestination = "heading";
                         this.tokenContext.lastTokenId.heading = null;
                         if (!(tagName in this.headings)) {
@@ -350,13 +355,9 @@ class USFM2Tokens {
                     }
                 }
             } else if (protoToken.type === "text") {
-                if (this.isHeaderTag(this.tokenContext.para)) {
-                    this.headers[this.tokenContext.para].push(protoToken.matched);
-                } else {
-                    this.addTokens(
-                        this.makeTextTokens(protoToken)
-                    )
-                }
+                this.addTokens(
+                    this.makeTextTokens(protoToken)
+                )
             } else if (protoToken.type === "eol") {
                 this.addTokens(
                     this.makeEolToken(protoToken)
@@ -407,9 +408,9 @@ class USFM2Tokens {
         return textArray.join('');
     }
 
-    textFromParas() {
+    textFromParas(lastParaId) {
         let texts = [];
-        let paraId = this.tokenContext.lastParaId;
+        let paraId = lastParaId || this.tokenContext.lastParaId;
         while (paraId) {
             let para = this.paras[paraId];
             if (!this.isHeaderTag(para.tag)) {
@@ -503,14 +504,22 @@ class USFM2Tokens {
     }
 
     describeHeadings() {
+        return this.describeStandoff("headings");
+    }
+
+    describeHeaders() {
+        return this.describeStandoff("headers");
+    }
+
+    describeStandoff(standoffType) {
         const ret = [];
-        for (const [k, v] of Object.entries(this.headings)) {
-            ret.push(`${k}: ` +
+        for (const [k, v] of Object.entries(this[standoffType])) {
+            ret.push(`${k}:\n` +
                 Array.from(v).map(
                     pi => {
                         const paraText = this.textFromPara(this.paras[pi]);
                         const nTokens = this.tokenRange(this.paras[pi].firstToken, this.paras[pi].lastToken);
-                        return "\n   " + nTokens.length + ": " + (paraText.trim().length > 0 ? `'${paraText}'` : '<empty>');
+                        return (paraText.trim().length > 0 ? `   '${paraText}'\n` : '   <empty>\n');
                     }
                 ).join('')
             )

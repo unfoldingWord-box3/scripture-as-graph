@@ -28,6 +28,7 @@ const usage = function() {
     console.log("node", pathBase, "<usfmPath>", "paras");
     console.log("node", pathBase, "<usfmPath>", "parasText");
     console.log("node", pathBase, "<usfmPath>", "describeParas");
+    console.log("node", pathBase, "<usfmPath>", "describeHeaders");
     console.log("node", pathBase, "<usfmPath>", "describeHeadings");
     console.log("node", pathBase, "<usfmPath>", "verse", "<chapter>", "<verse>");
     console.log("node", pathBase, "<usfmPath>", "verses", "<fromChapter>", "<fromVerse>", "<toChapter>", "<toVerse>");
@@ -78,6 +79,9 @@ if (process.argv[2] === "help") {
     } else if (commandType === "describeParas") {
         console.log("\nDESCRIBE PARAS");
         u2t.describeParas();
+    } else if (commandType === "describeHeaders") {
+        console.log("\nHEADERS");
+        console.log(u2t.describeHeaders());
     } else if (commandType === "describeHeadings") {
         console.log("\nHEADINGS");
         console.log(u2t.describeHeadings());

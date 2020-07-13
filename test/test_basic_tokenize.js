@@ -22,10 +22,12 @@ describe('Basic Tokenizing', function() {
         assert.equal(u2t.reconstitutedUSFM().length, u2t.usfm.length);
         for (const tag of ["ide", "h", "toc1", "toc2", "toc3"]) {
             assert.property(u2t.headers, tag);
-            assert(u2t.headers[tag].length > 0);
-            assert(u2t.headers[tag][0].length > 0);
+            assert(u2t.headers[tag].size > 0);
         }
-        assert.match(u2t.headers["toc1"][0], /The Book of Lamentations/);
+        for (const paraId of Array.from(u2t.headers["toc1"])) {
+            const para = u2t.paras[paraId];
+            assert.match(u2t.textFromPara(para), /The Book of Lamentations/);
+        }
     });
 
     it('Reports bare backslashes', function () {
