@@ -2,7 +2,7 @@
 require = require('esm')(module /* , options */);
 const path = require('path');
 
-const U2T = require('../src/usfm2tokens.js').default;
+const U2T = require('../lib/usfm2tokens.js').default;
 
 var timestamp;
 

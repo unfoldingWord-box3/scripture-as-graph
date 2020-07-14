@@ -3,7 +3,7 @@ const assert = require('chai').assert;
 const path = require('path');
 const fse = require('fs-extra');
 
-const USFM2Tokens = require('../src/usfm2tokens.js').default;
+const USFM2Tokens = require('../lib/usfm2tokens.js').default;
 
 describe('Basic Tokenizing', function() {
 
