@@ -1,0 +1,46 @@
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>GunDB Scripture Proof of Concept</title>
+</head>
+<body>
+<h1>GunDB Scripture Proof of Concept</h1>
+
+<ul id="collectionList">
+
+</ul>
+
+<script src="https://cdn.jsdelivr.net/npm/gun/gun.js"></script>
+<script>
+    var gun = Gun('http://localhost:2468/gun');
+    var gunCollections = gun.get('unfoldingWord').get('collections');
+    var localData = {};
+
+    gunCollections.map().on(function (node, nodeID) {
+        console.log(`${nodeID} was updated! Updating local data...`);
+        gunCollections.get(nodeID).get("tokenIds").map().once(function (foo, baa) {console.log(foo, baa)});
+        localData[nodeID] = node;
+        renderList(localData);
+    });
+
+    function renderList(collections) {
+        console.log('re-rendering UI...');
+        var collectionList = document.getElementById("collectionList");
+        collectionList.innerHTML = '';
+        for (let [nodeID, node] of Object.entries(collections)) {
+            if (node !== null) {
+                console.log('rendering this object');
+                console.log(node);
+                const text = document.createElement('div');
+                text.innerHTML = `<b>${nodeID}</b>: created ${node.created}`;
+                const item = document.createElement('li');
+                item.id = nodeID;
+                item.appendChild(text);
+                collectionList.appendChild(item);
+            }
+        }
+    }
+
+</script>
+</body>
+</html>

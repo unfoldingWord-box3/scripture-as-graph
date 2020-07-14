@@ -1,4 +1,6 @@
 *.code-workspace
+server/radata*
+.idea
 
 # Logs
 logs
