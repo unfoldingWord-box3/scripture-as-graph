@@ -1,7 +1,7 @@
 require = require('esm')(module /* , options */);
+const fse = require('fs-extra');
 const gun = require('gun');
 const http = require('http');
-const U2T = require("../lib/usfm2tokens").default;
 
 class TokenServer {
     constructor () {
@@ -15,19 +15,27 @@ class TokenServer {
         };
     }
 
+    readUSFM(uPath) {
+        let usfmString;
+        try {
+            usfmString = fse.readFileSync(uPath, "utf-8");
+        } catch (err) {
+            throw new Error(`Could not load USFM: ${err}`);
+        }
+        return usfmString;
+    }
+
     async populateCollections() {
         const gunUW = this.gunServer.get("unfoldingWord");
         let count = 0;
         for (const [cName, cPath] of Object.entries(this.toLoad)) {
-            this.collections[cName] = new U2T(cPath);
+            this.collections[cName] = this.readUSFM(cPath);
             const gunCollection = gunUW.get("collections").get(cName);
             const date = new Date();
-            gunCollection.put({"created": date.toString()});
-            const gunCollectionTokens = gunCollection.get("tokenIds");
-            for (const tokenId of Object.keys(this.collections[cName].tokens)) {
-                await gunCollectionTokens.put({"id": tokenId});
-                console.log(count++);
-            }
+            gunCollection.put({
+                "created": date.toString(),
+                "usfm": this.collections[cName]
+            });
             console.log(cName, "added");
         }
     }
