@@ -2,7 +2,7 @@
 require = require('esm')(module /* , options */);
 const path = require('path');
 
-const U2T = require('../lib/usfm2tokens.js').default;
+const usfmFromPath = require('../lib/usfmFromPath.js').default;
 
 var timestamp;
 
@@ -49,7 +49,7 @@ if (process.argv[2] === "help") {
     const commandType = process.argv[3];
     const otherArgs = process.argv.slice(4);
     elapsedTime();
-    const u2t = new U2T(usfmSource);
+    const u2t = usfmFromPath(usfmSource);
     console.log(`Init in ${elapsedTime()} msec`);
     if (commandType === "stats") {
         console.log("\nCOUNTS OF INTERNALS");
