@@ -18,8 +18,9 @@
 
     gunCollections.map().on(function (node, nodeID) {
         console.log(`${nodeID} was updated! Updating local data...`);
-        gunCollections.get(nodeID).get("tokenIds").map().once(function (foo, baa) {console.log(foo, baa)});
-        localData[nodeID] = node;
+        let tokenCount = 0;
+        gunCollections.get(nodeID).get("tokenIds").map().once(function (foo, baa) {tokenCount++});
+        localData[nodeID] = tokenCount;
         renderList(localData);
     });
 
@@ -27,12 +28,11 @@
         console.log('re-rendering UI...');
         var collectionList = document.getElementById("collectionList");
         collectionList.innerHTML = '';
-        for (let [nodeID, node] of Object.entries(collections)) {
-            if (node !== null) {
+        for (let [nodeID, count] of Object.entries(collections)) {
+            if (count !== null) {
                 console.log('rendering this object');
-                console.log(node);
                 const text = document.createElement('div');
-                text.innerHTML = `<b>${nodeID}</b>: created ${node.created}`;
+                text.innerHTML = `<b>${nodeID}</b>: ${count} tokens`;
                 const item = document.createElement('li');
                 item.id = nodeID;
                 item.appendChild(text);
