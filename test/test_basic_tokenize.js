@@ -17,6 +17,11 @@ describe('Basic Tokenizing', function() {
         assert.equal(u2t.reconstitutedUSFM().length, u2t.usfm.length);
     });
 
+    it("Handles attributes (by pretokenizing and then ignoring them", function () {
+        this.timeout(10000);
+        const u2t = usfmFromPath(path.join(this.testDataDir, "fr_lsg_mat.usfm"));
+    });
+
     it('Extracts header info', function () {
         const u2t = usfmFromPath(path.join(this.testDataDir, "en_ult_lam.usfm"));
         assert.equal(u2t.reconstitutedUSFM().length, u2t.usfm.length);
