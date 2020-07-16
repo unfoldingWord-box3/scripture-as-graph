@@ -4,15 +4,35 @@ const gun = require('gun');
 const http = require('http');
 
 class TokenServer {
-    constructor () {
+    constructor (translationDir) {
         const httpServer = http.createServer().listen(2468);
         this.gunServer = gun({web: httpServer});
-        this.collections = {};
-        this.toLoad = {
-            "oeb_jol": "../test/test_data/oeb_jol.usfm",
-            "en_ult_lam": "../test/test_data/en_ult_lam.usfm",
-            "en_ult_psa": "../test/test_data/en_ult_psa.usfm",
-        };
+        this.translationDir = translationDir;
+        this.translations = this.indexTranslations(translationDir);
+    }
+
+    documentPath(lDir, tDir, doc) {
+        return [this.translationDir, lDir, tDir, doc].join("/");
+    }
+
+    indexTranslations(lDir) {
+        const ret = {};
+        fse.readdirSync(lDir).forEach(
+            function(tDir) {
+                ret[tDir] = {};
+                fse.readdirSync(`${lDir}/${tDir}`).forEach(
+                    function(dDir) {
+                        ret[tDir][dDir] = [];
+                        fse.readdirSync(`${lDir}/${tDir}/${dDir}`).forEach(
+                            function(doc) {
+                                ret[tDir][dDir].push(doc);
+                            }
+                        )
+                    }
+                )
+            }
+        )
+        return ret;
     }
 
     readUSFM(uPath) {
@@ -25,21 +45,29 @@ class TokenServer {
         return usfmString;
     }
 
-    async populateCollections() {
-        const gunUW = this.gunServer.get("unfoldingWord");
+    async populate() {
+        const gunLanguages = this.gunServer.get("unfoldingWord").get("languages");
         let count = 0;
-        for (const [cName, cPath] of Object.entries(this.toLoad)) {
-            this.collections[cName] = this.readUSFM(cPath);
-            const gunCollection = gunUW.get("collections").get(cName);
-            const date = new Date();
-            gunCollection.put({
-                "created": date.toString(),
-                "usfm": this.collections[cName]
-            });
-            console.log(cName, "added");
+        for (const [lName, lTranslations] of Object.entries(this.translations)) {
+            const gunTranslations = gunLanguages.get(lName);
+            console.log(" ", "Added Language", lName);
+            for (const [tName, tDocuments] of Object.entries(lTranslations)) {
+                const gunDocuments = gunTranslations.get('translations').get(tName).get("documents");
+                console.log(" ", "Added Translation", tName);
+                for (const tDocument of tDocuments) {
+                    const date = new Date();
+                    const usfm = this.readUSFM(this.documentPath(lName, tName, tDocument));
+                    await gunDocuments.get(tDocument).put({
+                        "src": this.documentPath(lName, tName, tDocument),
+                        "added": date,
+                        "usfm": "usfm"
+                    });
+                    console.log("   ", "Added Document", tDocument);
+                }
+            }
         }
     }
 }
 
-const server = new TokenServer();
-server.populateCollections().then();
+const server = new TokenServer(process.argv[2]);
+server.populate().then();

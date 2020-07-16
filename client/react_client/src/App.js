@@ -1,54 +1,91 @@
 import React, {Component} from 'react';
 import Gun from 'gun';
 import './App.css';
-import USFM2Tokens from './usfm2tokens.js';
+
+// import USFM2Tokens from './usfm2tokens.js';
 
 class App extends Component {
 
     constructor() {
         super();
         this.state = {
-            collections: {}
+            lastUpdate: 0
         };
         this.gun = Gun('http://localhost:2468/gun');
-        this.localData = {};
-        const gunCollections = this.gun.get('unfoldingWord').get('collections');
-        const self = this;
-        gunCollections.map().on(
-            function (node, nodeID) {
-                const u2t = new USFM2Tokens(node.usfm);
-                self.localData[nodeID] = {
-                    usfm: node.usfm,
-                    graph: u2t
-                };
-                self.localData[nodeID].title = u2t.textFromPara(
-                    u2t.paras[
-                        Array.from(u2t.standoff.header.id)[0]
-                    ]
-                )
+    }
+
+    incLastUpdate = () => {
+        this.setState({lastUpdate: this.state.lastUpdate + 1});
+        console.log("Update", this.state.lastUpdate);
+    }
+
+    dataFromGun() {
+        const ret = {};
+        const gunLanguages = this.gun.get('unfoldingWord').get('languages');
+        gunLanguages.map().once(
+            function (lNode, lNodeID) {
+                ret[lNodeID] = {};
+                const gunTranslations = gunLanguages.get(lNodeID).get("translations");
+                gunTranslations.map().once(
+                    function (tNode, tNodeID) {
+                        ret[lNodeID][tNodeID] = {};
+                        const gunDocuments = gunTranslations.get(tNodeID).get("documents");
+                        gunDocuments.map().once(
+                            function (dNode, dNodeID) {
+                                ret[lNodeID][tNodeID][dNodeID] = {
+                                    src: dNode.src
+                                };
+                            }
+                        )
+                    }
+                );
             }
-        )
+        );
+        console.log(ret, typeof (ret), ret["eng"], Object.keys(ret));
+        return ret;
     }
 
     render() {
+        console.log("render");
+        const dataTree = this.dataFromGun();
+        console.log("DT", Object.keys(dataTree));
         return (
             <div className="App">
-                <h1>React Scripture-as-Graph Proof of Concept</h1>
-                <div>
-                    <h2>Documents</h2>
-                    {Object.keys(this.localData).map(
-                        (k) => {
-                            return (
-                                <div key={k}>
-                                    <h3>{`${this.localData[k].title} (${k})`}</h3>
-                                    <div>{`USFM is ${this.localData[k].usfm.length} bytes`}</div>
-                                    <div>{`${Object.keys(this.localData[k].graph.chapterVerses).length} chapters`}</div>
-                                    <div>{`${Object.keys(this.localData[k].graph.words).length} unique words`}</div>
-                                </div>
-                            )
-                        }
-                    )}
-                </div>
+                <h1 onClick={ this.incLastUpdate }>React Scripture-as-Graph Proof of Concept</h1>
+                {Object.entries(dataTree).map(
+                    (l) => {
+                        const [k, v] = l;
+                        return (
+                            <div key={k}>
+                                <h2>{`Language ${k}`}</h2>
+                                {
+                                    Object.entries(v).map(
+                                        t => {
+                                            const [k2, v2] = t;
+                                            return (
+                                                <div key={k2}>
+                                                    <h3>{`Translation ${k2}`}</h3>
+                                                    {
+                                                        Object.entries(v2).map(
+                                                            d => {
+                                                                const [k3, v3] = d;
+                                                                return (
+                                                                    <div key={k3}>
+                                                                        <h4>Doc {v3.src}</h4>
+                                                                    </div>
+                                                                )
+                                                            }
+                                                        )
+                                                    }
+                                                </div>
+                                            )
+                                        }
+                                    )
+                                }
+                            </div>
+                        )
+                    }
+                )}
             </div>
         );
     }
