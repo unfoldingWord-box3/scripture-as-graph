@@ -1,90 +1,138 @@
-import React, {Component} from 'react';
-import Gun from 'gun';
+import React, {Component, Fragment} from 'react';
+import Axios from "axios";
 import './App.css';
+import 'bootstrap/dist/css/bootstrap.css';
 
 // import USFM2Tokens from './usfm2tokens.js';
+
+class RestClient {
+
+    constructor(baseUrl) {
+        this.baseUrl = baseUrl;
+        this.state = {
+            selected: null
+        }
+    }
+
+    doGet(callback) {
+        this.sendRequest("get", this.baseUrl, callback);
+    }
+
+    async sendRequest(method, url, callback) {
+        callback((await Axios.request({
+            method: method,
+            url: url
+        })).data);
+    }
+}
 
 class App extends Component {
 
     constructor() {
         super();
         this.state = {
-            lastUpdate: 0
+            languages: {},
+            lastUpdated: "Never"
         };
-        this.gun = Gun('http://localhost:2468/gun');
+        this.restClient = new RestClient("http://localhost:4000");
     }
 
-    incLastUpdate = () => {
-        this.setState({lastUpdate: this.state.lastUpdate + 1});
-        console.log("Update", this.state.lastUpdate);
+    updateLanguages() {
+        this.restClient.doGet(data => this.setState({languages: data}));
     }
 
-    dataFromGun() {
-        const ret = {};
-        const gunLanguages = this.gun.get('unfoldingWord').get('languages');
-        gunLanguages.map().once(
-            function (lNode, lNodeID) {
-                ret[lNodeID] = {};
-            const gunTranslations = gunLanguages.get(lNodeID).get("translations");
-                gunTranslations.map().once(
-                    function (tNode, tNodeID) {
-                        ret[String(lNodeID)][String(tNodeID)] = {};
-                        const gunDocuments = gunTranslations.get(tNodeID).get("documents");
-                        gunDocuments.map().once(
-                            function (dNode, dNodeID) {
-                                ret[String(lNodeID)][String(tNodeID)][String(dNodeID)] = {
-                                    src: String(dNode.src)
-                                };
-                            }
-                        )
-                    }
-                );
-            }
-        );
-        console.log(ret, typeof (ret), ret["eng"], Object.keys(ret));
-        return ret;
+    docClick(lang, trans, doc) {
+        this.setState({"selected": ["document", lang, trans, doc]});
+    }
+
+    translationClick(lang, trans) {
+        this.setState({"selected": ["translation", lang, trans]});
+    }
+
+    languageClick(lang) {
+        this.setState({"selected": ["language", lang]});
+    }
+
+    rootClick() {
+        this.setState({"selected": null});
+    }
+
+    resetResources() {
+        this.setState({"selected": null, languages: {}});
+    }
+
+    selectedTitle(selection) {
+        switch (selection[0]) {
+            case "language":
+                return `Language ${selection[1]}`
+            case "translation":
+                return `Translation ${selection[2]} (${selection[1]})`
+            case "document":
+                return `Document ${selection[3]} (${selection[1]}, ${selection[2]})`
+            default:
+                return "?"
+        }
     }
 
     render() {
-        console.log("render");
-        const dataTree = this.dataFromGun();
         return (
-            <div className="App">
-                <h1 onClick={ this.incLastUpdate }>React Scripture-as-Graph Proof of Concept</h1>
-                {Object.entries(dataTree).map(
-                    (l) => {
-                        const [k, v] = l;
-                        return (
-                            <div key={k}>
-                                <h2>{`Language ${k}`}</h2>
-                                {
-                                    Object.entries(v).map(
-                                        t => {
-                                            const [k2, v2] = t;
-                                            return (
-                                                <div key={k2}>
-                                                    <h3>{`Translation ${k2}`}</h3>
-                                                    {
-                                                        Object.entries(v2).map(
-                                                            d => {
-                                                                const [k3, v3] = d;
-                                                                return (
-                                                                    <div key={k3}>
-                                                                        <h4>Doc {v3.src}</h4>
+            <div className="App container">
+                <h1 className="h1 text-primary text-center" onClick={() => this.updateLanguages()}>Scripture-as-Graph Proof of
+                    Concept</h1>
+                <div className="row">
+                    <div className="col-6">
+                        <div className="h2 text-secondary text-center" onClick={() => this.resetResources()}>Resources</div>
+                        {Object.keys(this.state.languages).length === 0 ? <div className="h4 text-center">Nothing Loaded</div> : Object.entries(this.state.languages).map(
+                            (l) => {
+                                const [k, v] = l;
+                                return (
+                                    <div className="row" key={k}>
+                                        <div className="col m-3">
+                                            <div className="h4 text-secondary"
+                                                 onClick={() => this.languageClick(k)}>Language <b>{k}</b></div>
+                                            {
+                                                Object.entries(v).map(
+                                                    t => {
+                                                        const [k2, v2] = t;
+                                                        return (
+                                                            <div className="row" key={k2}>
+                                                                <div className="col m-3">
+                                                                    <div className="h5 text-secondary"
+                                                                         onClick={() => this.translationClick(k, k2)}>Translation <b>{k2}</b>
                                                                     </div>
-                                                                )
-                                                            }
+                                                                    {
+                                                                        v2.map(
+                                                                            d => {
+                                                                                return (
+                                                                                    <Fragment key={d.docId}>
+                                                                            <span className="translationDoc"
+                                                                                  onClick={() => this.docClick(k, k2, d.docId)}>
+                                                                                <small>{d.docId}</small>
+                                                                            </span>
+                                                                                        <span> </span>
+                                                                                    </Fragment>
+                                                                                )
+                                                                            }
+                                                                        )
+                                                                    }
+                                                                </div>
+                                                            </div>
                                                         )
                                                     }
-                                                </div>
-                                            )
-                                        }
-                                    )
-                                }
-                            </div>
-                        )
-                    }
-                )}
+                                                )
+                                            }
+                                        </div>
+                                    </div>
+                                )
+                            }
+                        )}
+                    </div>
+                    <div className="col-6">
+                        <div className="h2 text-secondary text-center" onClick={() => this.rootClick()}>
+                            { this.state.selected ? this.selectedTitle(this.state.selected) : "Nothing Selected" }
+                        </div>
+                    </div>
+                </div>
             </div>
         );
     }

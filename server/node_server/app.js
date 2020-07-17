@@ -3,11 +3,15 @@ var express = require('express');
 var path = require('path');
 var cookieParser = require('cookie-parser');
 var logger = require('morgan');
+var cors = require('cors');
 
 var indexRouter = require('./routes/index');
 var docRouter = require('./routes/doc');
 
 var app = express();
+
+// Use CORS
+app.use(cors());
 
 // Format JSON
 app.set('json spaces', 2);
