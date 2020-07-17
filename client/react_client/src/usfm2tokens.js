@@ -1,18 +1,12 @@
-const xre =require('xregexp');
-const fse = require('fs-extra');
 import { v4 as uuid4 } from 'uuid';
+const xre =require('xregexp');
 
 class USFM2Tokens {
 
     /* INIT */
 
-    constructor(usfmPath) {
-
-        try { // Load USFM
-            this.usfm = fse.readFileSync(usfmPath, "utf-8");
-            } catch (err) {
-                throw new Error(`Could not load USFM: ${err}`);
-            }
+    constructor(usfmString) {
+        this.usfm = usfmString;
         this.setup();
         this.matchProtoTokens();
         this.parseProtoTokens();
@@ -67,6 +61,11 @@ class USFM2Tokens {
                 "[\\r\\n]*\\\\([cv])[ \\t](\\d+)[ \\t\\r\\n]*"
             ],
             [
+                "attribute",
+                "(\\|?[A-Za-z0-9\\-]+=\"[^\"]+\"[ \\t]?)",
+                "\\|?([A-Za-z0-9\\-]+)=\"([^\"]+)\"[ \\t]?"
+            ],
+            [
                 "tag",
                 "(\\\\[a-z1-9\\-]+[* \\t]?)",
                 "\\\\([a-z1-9\\-]+)([* \\t]?)"
@@ -83,8 +82,8 @@ class USFM2Tokens {
             ],
             [
                 "text",
-                "([^\\r\\n\\\\]+)",
-                "([^\\r\\n\\\\]+)"
+                "([^\\|\\r\\n\\\\]+)",
+                "([^\\|\\r\\n\\\\]+)"
             ]
         ];
         this.mainRegex = xre(
@@ -198,7 +197,7 @@ class USFM2Tokens {
                     if (strMatch) {
                         return [strMatch[1], str.substring(strMatch[1].length), "punctuation"]
                     } else {
-                        throw `Could not match against '${str}' at para ${this.tokenContext.paraCount}`;
+                        throw new Error(`Could not match against '${str}' at para ${this.tokenContext.paraCount}`);
                     }
                 }
             }
@@ -228,9 +227,9 @@ class USFM2Tokens {
     }
 
     normalizedText(token, singleLine) {
-        if (token.type == "whitespace") {
+        if (token.type === "whitespace") {
             return " ";
-        } else if (token.type == "eol") {
+        } else if (token.type === "eol") {
             return singleLine ? " ": "\n";
         } else {
             return token.text;
@@ -364,7 +363,7 @@ class USFM2Tokens {
                         this.newStandoffPara("header", tagName, thisParaId);
                     } else if (this.isHeadingTag(tagName)) {
                         this.newStandoffPara("heading", tagName, thisParaId);
-                    } else if (tagName == "rem") {
+                    } else if (tagName === "rem") {
                         this.newStandoffPara("rem", tagName, thisParaId);
                     } else {
                         this.tokenContext.tokenDestination = "body";
@@ -395,7 +394,7 @@ class USFM2Tokens {
                         this.tokenContext.charsIdStack.unshift(charsId);
                     }
                 }
-            } else if (protoToken.type == "cv") {
+            } else if (protoToken.type === "cv") {
                 const [cvType, cvVal] = protoToken.bits;
                 if (cvType === "c") {
                     this.tokenContext.chapter = cvVal;
@@ -433,7 +432,7 @@ class USFM2Tokens {
         while (tokenId) {
             let token = this.tokens[tokenId];
             ret.push(token);
-            if (tokenId == firstT) {
+            if (tokenId === firstT) {
                 break;
             }
             tokenId = token.previous;
