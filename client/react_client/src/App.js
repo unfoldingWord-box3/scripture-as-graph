@@ -25,15 +25,15 @@ class App extends Component {
         gunLanguages.map().once(
             function (lNode, lNodeID) {
                 ret[lNodeID] = {};
-                const gunTranslations = gunLanguages.get(lNodeID).get("translations");
+            const gunTranslations = gunLanguages.get(lNodeID).get("translations");
                 gunTranslations.map().once(
                     function (tNode, tNodeID) {
-                        ret[lNodeID][tNodeID] = {};
+                        ret[String(lNodeID)][String(tNodeID)] = {};
                         const gunDocuments = gunTranslations.get(tNodeID).get("documents");
                         gunDocuments.map().once(
                             function (dNode, dNodeID) {
-                                ret[lNodeID][tNodeID][dNodeID] = {
-                                    src: dNode.src
+                                ret[String(lNodeID)][String(tNodeID)][String(dNodeID)] = {
+                                    src: String(dNode.src)
                                 };
                             }
                         )
@@ -48,7 +48,6 @@ class App extends Component {
     render() {
         console.log("render");
         const dataTree = this.dataFromGun();
-        console.log("DT", Object.keys(dataTree));
         return (
             <div className="App">
                 <h1 onClick={ this.incLastUpdate }>React Scripture-as-Graph Proof of Concept</h1>
