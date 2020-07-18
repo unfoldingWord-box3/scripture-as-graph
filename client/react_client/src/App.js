@@ -1,21 +1,23 @@
 import React, {Component, Fragment} from 'react';
 import Axios from "axios";
-import './App.css';
 import 'bootstrap/dist/css/bootstrap.css';
 
-// import USFM2Tokens from './usfm2tokens.js';
+import USFM2Tokens from './usfm2tokens';
+import './App.css';
+
 
 class RestClient {
 
     constructor(baseUrl) {
         this.baseUrl = baseUrl;
+        this.toFetch = new Set();
         this.state = {
             selected: null
         }
     }
 
-    doGet(callback) {
-        this.sendRequest("get", this.baseUrl, callback);
+    async doGet(url, callback) {
+        await this.sendRequest("get", `${this.baseUrl}/${url}`, callback);
     }
 
     async sendRequest(method, url, callback) {
@@ -37,12 +39,24 @@ class App extends Component {
         this.restClient = new RestClient("http://localhost:4000");
     }
 
-    updateLanguages() {
-        this.restClient.doGet(data => this.setState({languages: data}));
+    async updateLanguages() {
+        await this.restClient.doGet("", data => this.setState({languages: data}));
     }
 
-    docClick(lang, trans, doc) {
-        this.setState({"selected": ["document", lang, trans, doc]});
+    async docClick(lang, trans, doc) {
+        const self = this;
+        const url = `doc/${lang}/${trans}/${doc}`;
+        self.setState({"selected": ["fetching"]});
+        await self.restClient.doGet(
+            url,
+            data => {
+                self.setState({"selected": ["processing"]});
+                const docRecord = self.state.languages[lang][trans][doc];
+                docRecord.usfm = data;
+                docRecord.graph = new USFM2Tokens(data);
+                self.setState({"selected": ["document", lang, trans, doc]});
+            }
+        );
     }
 
     translationClick(lang, trans) {
@@ -63,6 +77,10 @@ class App extends Component {
 
     selectedTitle(selection) {
         switch (selection[0]) {
+            case "fetching":
+                return "Fetching data from server"
+            case "processing":
+                return "Building graph"
             case "language":
                 return `Language ${selection[1]}`
             case "translation":
@@ -112,18 +130,19 @@ class App extends Component {
                                                                             <div className="row" key={k2}>
                                                                                 <div className="col m-3">
                                                                                     <div className="h5 text-secondary"
-                                                                                         onClick={() => this.translationClick(k, k2)}>Translation <b>{k2}</b>
+                                                                                         onClick={() => this.translationClick(k, k2)}>Translation <strong>{k2}</strong>
                                                                                     </div>
                                                                                     {
-                                                                                        v2.map(
+                                                                                        Object.entries(v2).map(
                                                                                             d => {
+                                                                                                const [k3, _] = d;
                                                                                                 return (
                                                                                                     <Fragment
-                                                                                                        key={d.docId}>
-                                                                            <span className="translationDoc"
-                                                                                  onClick={() => this.docClick(k, k2, d.docId)}>
-                                                                                <small>{d.docId}</small>
-                                                                            </span>
+                                                                                                        key={k3}>
+                                                                                                        <span className={"graph" in this.state.languages[k][k2][k3] ? "loadedDoc font-weight-bold" : "unloadedDoc" }
+                                                                                                              onClick={() => this.docClick(k, k2, k3)}>
+                                                                                                            <small>{k3}</small>
+                                                                                                        </span>
                                                                                                         <span> </span>
                                                                                                     </Fragment>
                                                                                                 )
@@ -148,6 +167,12 @@ class App extends Component {
                         <div className="h2 text-secondary text-center" onClick={() => this.rootClick()}>
                             {this.state.selected ? this.selectedTitle(this.state.selected) : "Nothing Selected"}
                         </div>
+                        {
+                            !this.state.selected ?
+                                ""
+                                :
+                                <div>Node stuff</div>
+                        }
                     </div>
                 </div>
             </div>

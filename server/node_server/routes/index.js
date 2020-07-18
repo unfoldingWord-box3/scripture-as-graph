@@ -11,12 +11,13 @@ const indexTranslations = function(lDir) {
         ret[tDir] = {};
         fse.readdirSync(`${lDir}/${tDir}`).forEach(
             function(dDir) {
-              ret[tDir][dDir] = [];
+              ret[tDir][dDir] = {};
               fse.readdirSync(`${lDir}/${tDir}/${dDir}`).forEach(
                   function(doc) {
-                    ret[tDir][dDir].push({
-                      docId: doc.split(".")[0].toUpperCase()
-                    });
+                      const docId = doc.split(".")[0].toUpperCase();
+                      ret[tDir][dDir][docId] = {
+                      docId: docId
+                    };
                   }
               )
             }

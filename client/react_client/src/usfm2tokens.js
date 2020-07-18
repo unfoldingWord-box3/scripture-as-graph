@@ -22,7 +22,6 @@ class USFM2Tokens {
         this.protoTokens = [];
         this.tokens = {};
         this.paras = {};
-        this.parasByTag = {};
         this.chapterVerses = {};
         this.standoff = {
             header: {},

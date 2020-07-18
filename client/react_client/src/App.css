@@ -1,5 +1,11 @@
 .App {}
 
-.translationDoc  {
+.loadedDoc, .unloadedDoc  {
     margin-right: 0.25em
 }
+
+.unloadedDoc {
+    color: #777;
+}
+
+.loadedDoc {}
