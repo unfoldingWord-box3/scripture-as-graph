@@ -3,6 +3,7 @@ import 'bootstrap/dist/css/bootstrap.css';
 
 import LanguageList from './language_list';
 import RestClient from './rest_client';
+import SelectedNode from './selected_node';
 import './App.css';
 
 class App extends Component {
@@ -27,6 +28,10 @@ class App extends Component {
 
     resetResources() {
         this.setState({"selected": null, languages: {}});
+    }
+
+    rootClick() {
+        this.setSelected(null);
     }
 
     selectedTitle(selection) {
@@ -74,7 +79,10 @@ class App extends Component {
                             !this.state.selected ?
                                 ""
                                 :
-                                <div>Node stuff</div>
+                                <SelectedNode
+                                    languages = { this.state.languages }
+                                    selected = { this.state.selected }
+                                />
                         }
                     </div>
                 </div>
