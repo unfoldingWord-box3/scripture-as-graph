@@ -1,4 +1,5 @@
-import React, {Component} from "react";
+import React, {Component, Fragment} from "react";
+import DocViewSelector from "./doc_view_selector";
 import StatsView from "./stats_view";
 import VersificationView from "./versification_view";
 import FindVersesView from "./find_verses_view";
@@ -10,11 +11,14 @@ class SelectedNode extends Component {
     constructor() {
         super();
         this.state = {
-            nodeView: "wordFrequencies"
+            nodeView: "stats"
         }
     }
 
-    render() {
+    setNodeView = (v) =>
+        this.setState({nodeView: v});
+
+    viewSwitch() {
         switch (this.state.nodeView) {
             case "stats":
                 return (
@@ -64,6 +68,18 @@ class SelectedNode extends Component {
             default:
                 return (<div>{this.state.nodeView}???</div>)
         }
+    }
+
+    render() {
+        return (
+            <Fragment>
+                <DocViewSelector
+                    nodeView={this.state.nodeView}
+                    setNodeView={this.setNodeView}
+                />
+                {this.viewSwitch()}
+            </Fragment>
+        )
     }
 }
 

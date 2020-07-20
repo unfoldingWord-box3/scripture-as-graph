@@ -1,5 +1,6 @@
 import React, {Component} from 'react';
 import 'bootstrap/dist/css/bootstrap.css';
+import 'bootstrap/dist/js/bootstrap.bundle.min';
 
 import LanguageList from './language_list';
 import RestClient from './rest_client';

@@ -1,6 +1,6 @@
 import React, {Component} from "react";
 
-class StatsView extends Component {
+class TranslationStatsView extends Component {
 
     render() {
         const now = new Date().getTime();
@@ -61,4 +61,4 @@ class StatsView extends Component {
 
 }
 
-export default StatsView;
+export default TranslationStatsView;

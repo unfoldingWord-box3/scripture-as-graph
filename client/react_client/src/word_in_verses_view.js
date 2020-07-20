@@ -18,7 +18,7 @@ class WordInVersesView extends Component {
         const graph = this.props.docRecord.graph;
         return (
             <div className="row">
-                <div className="col p-3 nodeView">
+                <div className="col p-3 bg-light border border-primary">
                     <div className="row">
                         <div className="col h4 text-primary">Find Word in Verses</div>
                     </div>
