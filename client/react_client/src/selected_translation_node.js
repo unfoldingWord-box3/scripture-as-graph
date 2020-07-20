@@ -22,7 +22,7 @@ class SelectedTranslationNode extends Component {
                         language={this.props.language}
                         translation={this.props.translation}
                         docId={this.props.docId}
-                        docRecord={this.props.docRecord}
+                        translationRecord={this.props.translationRecord}
                     />
                 );
             default:

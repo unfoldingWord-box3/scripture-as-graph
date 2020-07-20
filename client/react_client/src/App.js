@@ -27,6 +27,10 @@ class App extends Component {
         this.setState({ "selected": newSelection });
     }
 
+    refreshLastUpdated(newSelection) {
+        this.setState({ "lastUpdated": new Date().getTime() });
+    }
+
     resetResources() {
         this.setState({"selected": null, languages: {}});
     }
@@ -70,6 +74,7 @@ class App extends Component {
                             selectedTitle = { this.selectedTitle }
                             setSelected = { sv => this.setSelected(sv) }
                             resetResources = { () => this.resetResources() }
+                            refreshLastUpdated = { () => this.refreshLastUpdated() }
                         />
                     </div>
                     <div className="col-6">
