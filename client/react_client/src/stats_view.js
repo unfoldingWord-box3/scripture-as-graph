@@ -16,6 +16,10 @@ class StatsView extends Component {
                         <div className="col-9">{this.props.docRecord.usfm.length} bytes</div>
                     </div>
                     <div className="row">
+                        <div className="col-3">ProtoTokens</div>
+                        <div className="col-9">{graph.protoTokens.length}</div>
+                    </div>
+                    <div className="row">
                         <div className="col-3">Tokens</div>
                         <div className="col-9">{Object.keys(graph.tokens).length}</div>
                     </div>
