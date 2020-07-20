@@ -3,6 +3,7 @@ import React, {Component} from "react";
 class StatsView extends Component {
 
     render() {
+        const now = new Date().getTime();
         const graph = this.props.docRecord.graph;
         return (
             <div className="row">
@@ -35,13 +36,16 @@ class StatsView extends Component {
                     {
                         graph.getStandoff('header').map(
                             hs =>
-                            <div className="row">
-                                <div className="col-3"></div>
-                                <div className="col-1"><small>{hs.split(":")[0]}</small></div>
-                                <div className="col-8"><small>{hs.split(":")[1]}</small></div>
-                            </div>
+                                <div className="row">
+                                    <div className="col-3"></div>
+                                    <div className="col-1"><small>{hs.split(":")[0]}</small></div>
+                                    <div className="col-8"><small>{hs.split(":")[1]}</small></div>
+                                </div>
                         )
                     }
+                    <div className="row">
+                        <div className="col text-secondary text-right"><small>Rendered in {new Date().getTime() - now} msec</small></div>
+                    </div>
                 </div>
             </div>
         );

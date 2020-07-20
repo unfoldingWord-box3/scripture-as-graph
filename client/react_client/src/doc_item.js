@@ -11,18 +11,21 @@ class DocItem extends Component {
     }
 
     async docClick(lang, trans, doc) {
-        const self = this;
         const url = `doc/${lang}/${trans}/${doc}`;
-        self.props.setSelected(["fetching"]);
-        await self.restClient.doGet(
-            url,
-            data => {
-                self.props.setSelected(["processing"]);
-                this.props.docRecord.usfm = data;
-                this.props.docRecord.graph = new USFM2Tokens(data);
-                self.props.setSelected(["document", lang, trans, doc]);
-            }
-        );
+        if ("graph" in this.props.docRecord) {
+            this.props.setSelected(["document", lang, trans, doc]);
+        } else {
+            const self = this;
+            self.props.setSelected(["fetching"]);
+            await self.restClient.doGet(
+                url,
+                data => {
+                    this.props.docRecord.usfm = data;
+                    this.props.docRecord.graph = new USFM2Tokens(data);
+                    self.props.setSelected(["document", lang, trans, doc]);
+                }
+            );
+        }
     }
 
     render() {
