@@ -44,14 +44,15 @@ class LanguageList extends Component {
                                                                 {
                                                                     Object.entries(v2).map(
                                                                         d => {
-                                                                            const [k3, _] = d;
+                                                                            const [k3, v3] = d;
                                                                             return (
                                                                                 <Fragment key={k3}>
                                                                                     <DocItem
                                                                                         languages = { this.props.languages }
                                                                                         language = { k }
                                                                                         translation = { k2 }
-                                                                                        doc = { k3 }
+                                                                                        docId = { k3 }
+                                                                                        docRecord = { v3 }
                                                                                         setSelected = { this.props.setSelected }
                                                                                     />
                                                                                     <span> </span>

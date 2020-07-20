@@ -573,6 +573,10 @@ class USFM2Tokens {
     }
 
     describeStandoff(standoffType) {
+        return this.getStandoff(standoffType).join('');
+    }
+
+    getStandoff(standoffType) {
         const ret = [];
         for (const [k, v] of Object.entries(this.standoff[standoffType])) {
             ret.push(`${k}:\n` +
@@ -584,7 +588,7 @@ class USFM2Tokens {
                 ).join('')
             )
         }
-        return ret.join("\n");
+        return ret;
     }
 
     describeChars() {

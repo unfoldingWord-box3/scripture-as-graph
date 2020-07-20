@@ -18,9 +18,8 @@ class DocItem extends Component {
             url,
             data => {
                 self.props.setSelected(["processing"]);
-                const docRecord = self.props.languages[lang][trans][doc];
-                docRecord.usfm = data;
-                docRecord.graph = new USFM2Tokens(data);
+                this.props.docRecord.usfm = data;
+                this.props.docRecord.graph = new USFM2Tokens(data);
                 self.props.setSelected(["document", lang, trans, doc]);
             }
         );
@@ -29,9 +28,9 @@ class DocItem extends Component {
     render() {
         return (
             <span
-                className={"graph" in this.props.languages[this.props.language][this.props.translation][this.props.doc] ? "loadedDoc font-weight-bold" : "unloadedDoc"}
-                onClick={() => this.docClick(this.props.language, this.props.translation, this.props.doc)}>
-                <small>{this.props.doc}</small>
+                className={"graph" in this.props.docRecord ? "loadedDoc font-weight-bold" : "unloadedDoc"}
+                onClick={() => this.docClick(this.props.language, this.props.translation, this.props.docId)}>
+                <small>{this.props.docId}</small>
             </span>
         );
     }
