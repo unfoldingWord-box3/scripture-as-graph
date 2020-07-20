@@ -20,6 +20,10 @@ class StatsView extends Component {
                         <div className="col-9">{Object.keys(graph.tokens).length}</div>
                     </div>
                     <div className="row">
+                        <div className="col-3">Unique 'Words'</div>
+                        <div className="col-9">{Object.keys(graph.words).length}</div>
+                    </div>
+                    <div className="row">
                         <div className="col-3">Chapters</div>
                         <div className="col-9">{Object.keys(graph.chapterVerses).length}</div>
                     </div>

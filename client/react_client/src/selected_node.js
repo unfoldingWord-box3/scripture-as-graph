@@ -1,42 +1,19 @@
 import React, {Component} from "react";
-import StatsView from "./stats_view";
-import VersificationView from "./versification_view";
+import SelectedDocNode from "./selected_doc_node";
 
 class SelectedNode extends Component {
 
-    constructor() {
-        super();
-        this.state = {
-            nodeView: "versification"
-        }
-    }
-
     render() {
-        if (this.props.selected.length < 4) {
-            return ""
-        }
         const [lang, trans, doc] = this.props.selected.slice(1);
-        switch (this.state.nodeView) {
-            case "stats":
-                return (
-                    <StatsView
-                        language={lang}
-                        translation={trans}
-                        docId={doc}
-                        docRecord={this.props.languages[lang][trans][doc]}
-                    />
-                )
-            case "versification":
-                return (
-                    <VersificationView
-                        language={lang}
-                        translation={trans}
-                        docId={doc}
-                        docRecord={this.props.languages[lang][trans][doc]}
-                    />
-                )
-            default:
-                return (<div>{this.state.nodeView}???</div>)
+        if (this.props.selected.length === 4) {
+            return (<SelectedDocNode
+                language={lang}
+                translation={trans}
+                docId={doc}
+                docRecord={this.props.languages[lang][trans][doc]}
+            />);
+        } else {
+            return "";
         }
     }
 }
