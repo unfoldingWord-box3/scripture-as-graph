@@ -3,13 +3,14 @@ import StatsView from "./stats_view";
 import VersificationView from "./versification_view";
 import FindVersesView from "./find_verses_view";
 import WordInVersesView from "./word_in_verses_view";
+import FrequenciesView from "./frequencies_view";
 
 class SelectedNode extends Component {
 
     constructor() {
         super();
         this.state = {
-            nodeView: "wordInVerses"
+            nodeView: "wordFrequencies"
         }
     }
 
@@ -45,6 +46,15 @@ class SelectedNode extends Component {
             case "wordInVerses":
                 return (
                     <WordInVersesView
+                        language={this.props.language}
+                        translation={this.props.translation}
+                        docId={this.props.docId}
+                        docRecord={this.props.docRecord}
+                    />
+                )
+            case "wordFrequencies":
+                return (
+                    <FrequenciesView
                         language={this.props.language}
                         translation={this.props.translation}
                         docId={this.props.docId}
