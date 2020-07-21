@@ -22,7 +22,12 @@ class SelectedTranslationNode extends Component {
                         language={this.props.language}
                         translation={this.props.translation}
                         docId={this.props.docId}
-                        translationRecord={this.props.translationRecord}
+                        translationRecord={
+                            Object.fromEntries(
+                                Object.entries(this.props.translationRecord)
+                                    .filter(kv => "graph" in kv[1])
+                            )
+                        }
                     />
                 );
             default:
