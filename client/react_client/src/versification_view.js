@@ -5,15 +5,16 @@ class VersificationView extends Component {
     render() {
         const now = new Date().getTime();
         const graph = this.props.docRecord.graph;
+        let keyVal = 0;
         return (
             <div className="row">
                 <div className="col p-3 bg-light border border-primary">
-                    <div className="row">
+                    <div className="row" key={keyVal++}>
                         <div className="col h4 text-primary">Versification</div>
                     </div>
                     {
                         Object.entries(graph.chapterVerses).map(
-                            cv => <div className="row">
+                            cv => <div className="row" key={keyVal++}>
                                 <div className="col-2">
                                     Ch {cv[0]}
                                 </div>
@@ -27,7 +28,7 @@ class VersificationView extends Component {
                             </div>
                         )
                     }
-                    <div className="row">
+                    <div className="row" key={keyVal++}>
                         <div className="col text-secondary text-right"><small>Rendered
                             in {new Date().getTime() - now} msec</small></div>
                     </div>

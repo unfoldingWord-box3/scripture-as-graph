@@ -183,9 +183,9 @@ class USFM2Tokens {
     /* PARSE PROTOTOKENS */
 
     getTextFragment(str) {
-        const alphanumericRegex = xre("^([\\p{Letter}\\p{Number}]+)");
+        const alphanumericRegex = xre("^([\\p{Letter}\\p{Number}\\p{Mark}]+)");
         const whitespaceRegex = xre("^([\\s]+)");
-        const punctuationRegex = xre("^([\\p{Punctuation}+]+)");
+        const punctuationRegex = xre("^([\\p{Punctuation}\\p{Symbol}]+)");
         if (str.length === 0) {
             return ["", "", null]
         } else {
@@ -284,12 +284,16 @@ class USFM2Tokens {
     }
 
     maybeUpdateChars(token) {
-        if (this.tokenContext.charsIdStack.length > 0) {
-            const charsRecord = Array.from(this.standoff.chars[this.tokenContext.charsStack[0]]).filter(x => x.charsId === this.tokenContext.charsIdStack[0])[0];
-            charsRecord.lastToken = token.tokenId;
-            if (!charsRecord.firstToken) {
-                charsRecord.firstToken = token.tokenId;
+        try {
+            if (this.tokenContext.charsIdStack.length > 0) {
+                const charsRecord = Array.from(this.standoff.chars[this.tokenContext.charsStack[0]]).filter(x => x.charsId === this.tokenContext.charsIdStack[0])[0];
+                charsRecord.lastToken = token.tokenId;
+                if (!charsRecord.firstToken) {
+                    charsRecord.firstToken = token.tokenId;
+                }
             }
+        } catch (err) {
+            console.log(`Character issue at ${token.chapter}:${token.verses} - '${token.text}'`);
         }
     }
 

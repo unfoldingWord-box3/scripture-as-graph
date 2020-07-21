@@ -15,21 +15,22 @@ class LanguageList extends Component {
     }
 
     async loadDocuments(toLoad) {
-        const [lang, trans, doc] = toLoad[0];
-        const url = `doc/${lang}/${trans}/${doc}`;
-        await this.restClient.doGet(
-            url,
-            async data => {
-                const docRecord = this.props.languages[lang][trans][doc];
-                docRecord.usfm = data;
-                docRecord.graph = new USFM2Tokens(data);
-                this.props.refreshLastUpdated();
-                if (toLoad.length > 1) {
-                    await this.loadDocuments(toLoad.slice(1));
+        if (toLoad && toLoad[0]) {
+            const [lang, trans, doc] = toLoad[0];
+            const url = `doc/${lang}/${trans}/${doc}`;
+            await this.restClient.doGet(
+                url,
+                async data => {
+                    const docRecord = this.props.languages[lang][trans][doc];
+                    docRecord.usfm = data;
+                    docRecord.graph = new USFM2Tokens(data);
+                    this.props.refreshLastUpdated();
+                    if (toLoad.length > 1) {
+                        await this.loadDocuments(toLoad.slice(1));
+                    }
                 }
-            }
-        );
-
+            );
+        }
     }
 
     async translationClick(lang, trans) {

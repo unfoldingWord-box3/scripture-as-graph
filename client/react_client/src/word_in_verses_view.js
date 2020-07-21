@@ -16,13 +16,14 @@ class WordInVersesView extends Component {
     render() {
         const now = new Date().getTime();
         const graph = this.props.docRecord.graph;
+        let keyVal = 0;
         return (
             <div className="row">
                 <div className="col p-3 bg-light border border-primary">
-                    <div className="row">
+                    <div className="row" key={keyVal++}>
                         <div className="col h4 text-primary">Find Word in Verses</div>
                     </div>
-                    <div className="form-row">
+                    <div className="form-row" key={keyVal++}>
                         <div className="col">
                             <input name="word" type="text" className="form-control" placeholder="word"
                                    onChange={(e) => this.updateFormValues(e)}/>
@@ -31,7 +32,7 @@ class WordInVersesView extends Component {
                     {
                         (this.state.word !== "") && (this.state.word in graph.words) ?
                             graph.wordInVerses(this.state.word).map(
-                                wiv => <div className="row">
+                                wiv => <div className="row" key={keyVal++}>
                                     <div className="col">
                                         {wiv}
                                     </div>
@@ -40,7 +41,7 @@ class WordInVersesView extends Component {
                             :
                             ""
                     }
-                    <div className="row">
+                    <div className="row" key={keyVal++}>
                         <div className="col text-secondary text-right"><small>Rendered
                             in {new Date().getTime() - now} msec</small></div>
                     </div>
