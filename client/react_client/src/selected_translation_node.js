@@ -1,6 +1,7 @@
 import React, {Component, Fragment} from "react";
 import TranslationViewSelector from "./translation_view_selector";
 import TranslationStatsView from "./translation_stats_view";
+import TranslationWordInVersesView from "./translation_word_in_verses_view";
 
 class SelectedTranslationNode extends Component {
 
@@ -19,6 +20,20 @@ class SelectedTranslationNode extends Component {
             case "stats":
                 return (
                     <TranslationStatsView
+                        language={this.props.language}
+                        translation={this.props.translation}
+                        docId={this.props.docId}
+                        translationRecord={
+                            Object.fromEntries(
+                                Object.entries(this.props.translationRecord)
+                                    .filter(kv => "graph" in kv[1])
+                            )
+                        }
+                    />
+                );
+            case "wordInVerses":
+                return (
+                    <TranslationWordInVersesView
                         language={this.props.language}
                         translation={this.props.translation}
                         docId={this.props.docId}

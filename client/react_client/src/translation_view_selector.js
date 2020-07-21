@@ -12,7 +12,11 @@ class TranslationViewSelector extends Component {
                         </button>
                         <div className="dropdown-menu" aria-labelledby="dropdownMenuButton">
                             <button className="dropdown-item"
-                               onClick={() => this.props.setNodeView("stats")}>Stats</button>
+                                    onClick={() => this.props.setNodeView("stats")}>Stats
+                            </button>
+                            <button className="dropdown-item"
+                                    onClick={() => this.props.setNodeView("wordInVerses")}>Find Words
+                            </button>
                         </div>
                     </div>
                 </div>
