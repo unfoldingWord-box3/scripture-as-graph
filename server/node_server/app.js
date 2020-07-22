@@ -1,17 +1,22 @@
-var createError = require('http-errors');
-var express = require('express');
-var path = require('path');
-var cookieParser = require('cookie-parser');
-var logger = require('morgan');
-var cors = require('cors');
+const createError = require('http-errors');
+const express = require('express');
+const path = require('path');
+const cookieParser = require('cookie-parser');
+const logger = require('morgan');
+const cors = require('cors');
 
-var indexRouter = require('./routes/index');
-var docRouter = require('./routes/doc');
+const indexRouter = require('./routes/index');
+const docRouter = require('./routes/doc');
 
-var app = express();
+require = require('esm')(module /* , options */);
+const config = require('../../client/react_client/src/config').default;
 
-// Use CORS
-app.use(cors());
+const app = express();
+
+// Maybe use CORS
+if (config.useCors) {
+  app.use(cors());
+}
 
 // Format JSON
 app.set('json spaces', 2);
