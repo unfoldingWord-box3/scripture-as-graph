@@ -6,6 +6,7 @@ import LanguageList from './language_list';
 import RestClient from './rest_client';
 import SelectedNode from './selected_node';
 import './App.css';
+import config from "./config";
 
 class App extends Component {
 
@@ -16,7 +17,7 @@ class App extends Component {
             selected: null,
             lastUpdated: "Never"
         };
-        this.restClient = new RestClient("http://localhost:4000");
+        this.restClient = new RestClient(config.nodeServerAddr);
     }
 
     async updateLanguages() {
@@ -27,7 +28,7 @@ class App extends Component {
         this.setState({ "selected": newSelection });
     }
 
-    refreshLastUpdated(newSelection) {
+    refreshLastUpdated() {
         this.setState({ "lastUpdated": new Date().getTime() });
     }
 

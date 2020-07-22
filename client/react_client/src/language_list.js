@@ -2,12 +2,13 @@ import React, {Component, Fragment} from 'react';
 import DocItem from './doc_item';
 import USFM2Tokens from "./usfm2tokens";
 import RestClient from "./rest_client";
+import config from "./config";
 
 class LanguageList extends Component {
 
     constructor() {
         super();
-        this.restClient = new RestClient("http://localhost:4000");
+        this.restClient = new RestClient(config.nodeServerAddr);
     }
 
     languageClick(lang) {
